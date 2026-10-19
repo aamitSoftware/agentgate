@@ -1,0 +1,24 @@
+{
+  "realm": "agentgate",
+  "enabled": true,
+  "roles": {
+    "realm": [
+      { "name": "registry-admin", "description": "Registers MCP servers and agents" },
+      { "name": "security-reviewer", "description": "Reviews manifests and approves grants (four-eyes)" },
+      { "name": "auditor", "description": "Read-only access to the hub and audit trail" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "agentgate-console",
+      "name": "AgentGate Console",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [ "http://localhost:5173/*" ],
+      "webOrigins": [ "http://localhost:5173" ],
+      "attributes": { "pkce.code.challenge.method": "S256" }
+    }
+  ]
+}

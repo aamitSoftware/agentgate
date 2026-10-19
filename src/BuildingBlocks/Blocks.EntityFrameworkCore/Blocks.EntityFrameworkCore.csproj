@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Blocks.Core\Blocks.Core.csproj" />
+    <ProjectReference Include="..\Blocks.Domain\Blocks.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

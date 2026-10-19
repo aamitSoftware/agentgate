@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Deliberately no package references: the domain kernel stays framework-free (enforced by ArchitectureTests). -->
+</Project>

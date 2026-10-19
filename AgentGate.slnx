@@ -1,0 +1,19 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AgentGate.AppHost/AgentGate.AppHost.csproj" />
+    <Project Path="src/AgentGate.ServiceDefaults/AgentGate.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/Blocks.AspNetCore/Blocks.AspNetCore.csproj" />
+    <Project Path="src/BuildingBlocks/Blocks.Core/Blocks.Core.csproj" />
+    <Project Path="src/BuildingBlocks/Blocks.Domain/Blocks.Domain.csproj" />
+    <Project Path="src/BuildingBlocks/Blocks.EntityFrameworkCore/Blocks.EntityFrameworkCore.csproj" />
+    <Project Path="src/BuildingBlocks/Blocks.Exceptions/Blocks.Exceptions.csproj" />
+    <Project Path="src/BuildingBlocks/Blocks.Mediator/Blocks.Mediator.csproj" />
+    <Project Path="src/BuildingBlocks/Blocks.Messaging/Blocks.Messaging.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AgentGate.ArchitectureTests/AgentGate.ArchitectureTests.csproj" />
+    <Project Path="tests/Blocks.EntityFrameworkCore.Tests/Blocks.EntityFrameworkCore.Tests.csproj" />
+  </Folder>
+</Solution>

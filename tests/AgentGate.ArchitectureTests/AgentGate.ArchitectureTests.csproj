@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="NetArchTest.Rules" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\BuildingBlocks\Blocks.AspNetCore\Blocks.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\Blocks.Core\Blocks.Core.csproj" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\Blocks.Domain\Blocks.Domain.csproj" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\Blocks.EntityFrameworkCore\Blocks.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\Blocks.Exceptions\Blocks.Exceptions.csproj" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\Blocks.Mediator\Blocks.Mediator.csproj" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\Blocks.Messaging\Blocks.Messaging.csproj" />
+  </ItemGroup>
+
+</Project>
