@@ -34,8 +34,8 @@ discover → risk-scan → approve (four-eyes) → pin manifest → enforce per-
 | Milestone | Scope | State |
 |---|---|---|
 | M0 | Repo, BuildingBlocks, Aspire AppHost, architecture tests, CI | done |
-| M1 | Gateway enforcement + demo MCP server and agent | next |
-| M2 | Registry: manifest pinning, drift → quarantine | |
+| M1 | Gateway enforcement + demo MCP server and agent | done |
+| M2 | Registry: manifest pinning, drift → quarantine | next |
 | M3 | Review: risk scan, four-eyes, grants, gRPC check | |
 | M4 | Hub + React console | |
 | M5 | Anomaly auto-suspend, Claude risk scanner, demo | |

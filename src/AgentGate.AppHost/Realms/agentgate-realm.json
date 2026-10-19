@@ -19,6 +19,29 @@
       "redirectUris": [ "http://localhost:5173/*" ],
       "webOrigins": [ "http://localhost:5173" ],
       "attributes": { "pkce.code.challenge.method": "S256" }
+    },
+    {
+      "clientId": "demo-agent",
+      "name": "Demo agent (nonhuman identity)",
+      "description": "DEV ONLY. The secret below exists only in this local realm import.",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "dev-only-rkU5VZ5fq7QWDiVRKw0q2Bf2",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "protocolMappers": [
+        {
+          "name": "gateway-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "agentgate-gateway",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
     }
   ]
 }

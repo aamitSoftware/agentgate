@@ -13,6 +13,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\demo\DemoAgent\DemoAgent.csproj" />
+    <ProjectReference Include="..\..\demo\DemoMcpServer\DemoMcpServer.csproj" />
+    <ProjectReference Include="..\Services\Gateway\Gateway.API\Gateway.API.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="Realms\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

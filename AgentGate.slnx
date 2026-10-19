@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/demo/">
+    <Project Path="demo/DemoAgent/DemoAgent.csproj" />
+    <Project Path="demo/DemoMcpServer/DemoMcpServer.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/AgentGate.AppHost/AgentGate.AppHost.csproj" />
     <Project Path="src/AgentGate.ServiceDefaults/AgentGate.ServiceDefaults.csproj" />
@@ -12,8 +16,13 @@
     <Project Path="src/BuildingBlocks/Blocks.Mediator/Blocks.Mediator.csproj" />
     <Project Path="src/BuildingBlocks/Blocks.Messaging/Blocks.Messaging.csproj" />
   </Folder>
+  <Folder Name="/src/Services/" />
+  <Folder Name="/src/Services/Gateway/">
+    <Project Path="src/Services/Gateway/Gateway.API/Gateway.API.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/AgentGate.ArchitectureTests/AgentGate.ArchitectureTests.csproj" />
     <Project Path="tests/Blocks.EntityFrameworkCore.Tests/Blocks.EntityFrameworkCore.Tests.csproj" />
+    <Project Path="tests/Gateway.Tests/Gateway.Tests.csproj" />
   </Folder>
 </Solution>
