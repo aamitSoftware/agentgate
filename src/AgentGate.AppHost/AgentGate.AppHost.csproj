@@ -16,6 +16,7 @@
     <ProjectReference Include="..\..\demo\DemoAgent\DemoAgent.csproj" />
     <ProjectReference Include="..\..\demo\DemoMcpServer\DemoMcpServer.csproj" />
     <ProjectReference Include="..\Services\Gateway\Gateway.API\Gateway.API.csproj" />
+    <ProjectReference Include="..\Services\Registry\Registry.API\Registry.API.csproj" />
   </ItemGroup>
 
   <ItemGroup>

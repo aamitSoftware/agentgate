@@ -19,3 +19,6 @@ public class NotFoundException(string message, Exception? innerException = null)
 
 public class UnauthorizedException(string? message = null)
     : HttpException(HttpStatusCode.Unauthorized, message);
+
+public class ConflictException(string message, Exception? innerException = null)
+    : HttpException(HttpStatusCode.Conflict, message, innerException);

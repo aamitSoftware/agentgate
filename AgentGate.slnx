@@ -8,6 +8,7 @@
     <Project Path="src/AgentGate.ServiceDefaults/AgentGate.ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/AgentGate.IntegrationEvents/AgentGate.IntegrationEvents.csproj" />
     <Project Path="src/BuildingBlocks/Blocks.AspNetCore/Blocks.AspNetCore.csproj" />
     <Project Path="src/BuildingBlocks/Blocks.Core/Blocks.Core.csproj" />
     <Project Path="src/BuildingBlocks/Blocks.Domain/Blocks.Domain.csproj" />
@@ -19,6 +20,12 @@
   <Folder Name="/src/Services/" />
   <Folder Name="/src/Services/Gateway/">
     <Project Path="src/Services/Gateway/Gateway.API/Gateway.API.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Registry/">
+    <Project Path="src/Services/Registry/Registry.API/Registry.API.csproj" />
+    <Project Path="src/Services/Registry/Registry.Application/Registry.Application.csproj" />
+    <Project Path="src/Services/Registry/Registry.Domain/Registry.Domain.csproj" />
+    <Project Path="src/Services/Registry/Registry.Persistence/Registry.Persistence.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/AgentGate.ArchitectureTests/AgentGate.ArchitectureTests.csproj" />

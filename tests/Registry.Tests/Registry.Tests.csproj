@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\demo\DemoMcpServer\DemoMcpServer.csproj" />
+    <ProjectReference Include="..\..\src\Services\Registry\Registry.Application\Registry.Application.csproj" />
+  </ItemGroup>
+
+</Project>

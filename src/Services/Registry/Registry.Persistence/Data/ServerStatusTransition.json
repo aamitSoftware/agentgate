@@ -1,0 +1,5 @@
+[
+  { "CurrentStatus": "UnderReview", "ActionType": "Approve",    "DestinationStatus": "Approved" },
+  { "CurrentStatus": "Approved",    "ActionType": "Quarantine", "DestinationStatus": "Quarantined" },
+  { "CurrentStatus": "Quarantined", "ActionType": "Approve",    "DestinationStatus": "Approved" }
+]
