@@ -54,7 +54,7 @@ Four services, plus Keycloak and the demo kit.
   - A seeded `*StageTransition` JSON table is loaded into a cached Stateless machine.
   - The domain only sees a factory delegate.
   - `ValidateTransition` runs before any change.
-- **Every change takes an `IGovernanceAction`** (who, when, action type, comment), the course's `IArticleAction` pattern. The action validates the transition, writes the audit entry and raises the domain event.
+- **Every change takes an `IAuditableAction<TActionType>`** (`Blocks.Domain`: actor, when, action type, comment), the course's `IArticleAction` pattern. The action validates the transition, writes the audit entry and raises the domain event.
 - **System actors are explicit actor types, not null users.** Examples are the drift job and the anomaly detector.
 
 ### Communication
@@ -125,15 +125,15 @@ Targets MCP spec version 2026-07-28; check at M1 whether it has changed.
 - `PublishIntegrationEventOn{X}Handler`.
 - Local copies of other services' data, built from events.
 - Two-layer authorization: a role check plus a resource check.
-- A single `GlobalExceptionMiddleware`; `DomainException` knows nothing about HTTP.
-- Pipeline order: AssignUserId → Validation → Logging.
+- A single `GlobalExceptionHandler` (ProblemDetails); `DomainException` knows nothing about HTTP.
+- Pipeline order: AssignActor → Validation → Logging.
 - Fail-fast options, `MaxLength` constants, central package management, and `:verb` routes.
 
 **Fixed:**
 
 | Course gap | AgentGate |
 |---|---|
-| Events published **after** commit (`DispatchDomainEventsInterceptor.SavedChangesAsync`), so the database write and the publish aren't atomic | Dispatch in **`SavingChangesAsync`**, so the MassTransit EF **bus outbox** rows are committed in the same save.<br>IDs generated in code with `Guid.CreateVersion7()`.<br>Re-fetch handlers must use **tracked** queries.<br>One Testcontainers test proves the change and its event commit together. |
+| Events published **after** commit (`DispatchDomainEventsInterceptor.SavedChangesAsync`), so the database write and the publish aren't atomic | Dispatch in **`SavingChangesAsync`**, so the MassTransit EF **bus outbox** rows are committed in the same save.<br>IDs generated in code with `Guid.CreateVersion7()`.<br>Handlers read the aggregate carried by the event and never re-query it (rows are not inserted yet).<br>One Testcontainers test proves the change and its event commit together. |
 | Each consumer handles duplicate messages differently | MassTransit EF **inbox** everywhere, plus a retry and redelivery policy |
 | No tests at all | Domain unit tests, Testcontainers integration tests, the MassTransit test harness, and **architecture tests** (NetArchTest) that encode the layering rules |
 | No observability | Aspire ServiceDefaults: OpenTelemetry traces, metrics and logs, plus health checks. One trace runs agent → gateway → MCP server, across RabbitMQ too. |
@@ -160,7 +160,7 @@ agentgate/
 │                         Blocks.EntityFrameworkCore (fixed interceptor + outbox),
 │                         Blocks.Messaging (MassTransit 8 + outbox/inbox),
 │                         Blocks.AspNetCore, Blocks.Mediator,
-│                         AgentGate.Abstractions (IGovernanceAction, roles),
+│                         AgentGate.Abstractions (roles, system actor ids),
 │                         AgentGate.IntegrationEvents, AgentGate.Grpc.Contracts
 ├── src/Services/{Registry,Review,Gateway,Hub}/{X}.API|Application|Domain|Persistence
 ├── demo/ DemoMcpServer (rug-pull toggle), DemoAgent (scripted scenarios)
