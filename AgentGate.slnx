@@ -31,5 +31,6 @@
     <Project Path="tests/AgentGate.ArchitectureTests/AgentGate.ArchitectureTests.csproj" />
     <Project Path="tests/Blocks.EntityFrameworkCore.Tests/Blocks.EntityFrameworkCore.Tests.csproj" />
     <Project Path="tests/Gateway.Tests/Gateway.Tests.csproj" />
+    <Project Path="tests/Registry.Tests/Registry.Tests.csproj" />
   </Folder>
 </Solution>

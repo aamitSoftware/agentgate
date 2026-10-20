@@ -224,6 +224,12 @@ Each milestone is demoable. Tests and CI start at M0. Estimate: about 8 weeks pa
 | **M4** (wk 6–7) | Hub projections, SSE feed, timeline. React console with the 4 screens. | The scripted scenario plays live in the UI |
 | **M5** (wk 8) | Denied-call spike → `AnomalyDetected` → Review suspends the grant.<br>`ClaudeRiskScanner` (use the `claude-api` skill).<br>README: architecture diagram, threat model including the v2 gaps, ADRs, a 3-minute demo script and a GIF. | Full demo end to end |
 
+**M2 as built** (differences from the scope above):
+- `McpServer` lifecycle is trimmed to what M2 needs: `Register` creates it in UnderReview; UnderReview → Approve → Approved → Quarantine → Quarantined → Approve → Approved. Discovered, SubmitForReview and Retired come with Review in M3.
+- The `Agent` aggregate is deferred to M3, where grants need it; agents are still the pre-created Keycloak clients.
+- The gateway's server catalog is in memory and built only from events, so a restarted gateway fails closed (unknown server → 404) until M3 adds a bootstrap read from Registry.
+- Registry applies EF migrations at startup in Development only.
+
 **Out of scope for v1** (listed as v2 in the README):
 - Response inspection: instructions injected into results, and changes in tool behaviour.
 - MCP resources, prompts and subscriptions.
