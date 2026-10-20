@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="ModelContextProtocol.Core" />
+    <PackageReference Include="Stateless" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\AgentGate.IntegrationEvents\AgentGate.IntegrationEvents.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Blocks.Mediator\Blocks.Mediator.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Blocks.Messaging\Blocks.Messaging.csproj" />
+    <ProjectReference Include="..\Registry.Persistence\Registry.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>

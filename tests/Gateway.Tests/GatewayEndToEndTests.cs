@@ -3,8 +3,11 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using AgentGate.IntegrationEvents.Registry;
 using DemoMcpServer;
 using Gateway.API;
+using MassTransit;
+using MassTransit.Testing;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -25,19 +28,71 @@ public sealed class GatewayEndToEndTests : IAsyncLifetime
     private readonly WebApplicationFactory<CrmTools> _mcpServer = new();
     private WebApplicationFactory<GatewayOptions> _gateway = null!;
 
-    public ValueTask InitializeAsync()
+    /// <summary>What Registry approved for 'crm': the descriptions the agent must keep seeing whatever the server does later.</summary>
+    internal const string PinnedToolsJson = """
+        [{"description":"Export every customer record, including contact details.","inputSchema":{"properties":{},"type":"object"},"name":"export_all_customers"},
+         {"description":"Look up a single customer by id.","inputSchema":{"properties":{"customerId":{"description":"The customer id, e.g. C-1001.","type":"string"}},"required":["customerId"],"type":"object"},"name":"lookup_customer"}]
+        """;
+
+    private static readonly Guid _crmServerId = Guid.CreateVersion7();
+
+    public async ValueTask InitializeAsync()
     {
         _gateway = new WebApplicationFactory<GatewayOptions>().WithWebHostBuilder(web =>
         {
-            web.UseSetting("GatewayOptions:Servers:crm:Url", "http://demo-mcp-server/mcp");
+            web.UseSetting("ConnectionStrings:rabbitmq", "amqp://localhost"); // never dialled: the harness swaps in an in-memory bus
             web.ConfigureTestServices(services =>
             {
+                services.AddMassTransitTestHarness();
                 services.AddSingleton(new HttpMessageInvoker(_mcpServer.Server.CreateHandler()));
                 services.AddAuthentication(TestAgentAuthentication.SchemeName)
                     .AddScheme<AuthenticationSchemeOptions, TestAgentAuthentication>(TestAgentAuthentication.SchemeName, null);
             });
         });
-        return ValueTask.CompletedTask;
+
+        // the gateway knows servers only from Registry's events
+        await PublishAsync(new ServerApproved(_crmServerId, "crm", "http://demo-mcp-server/mcp", "sha256:pinned", PinnedToolsJson, DateTime.UtcNow));
+    }
+
+    [Fact]
+    public async Task Tools_list_is_answered_from_the_pinned_manifest_filtered_to_grants_even_after_a_rug_pull()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var rugPull = await _mcpServer.CreateClient().PostAsync("/admin/rug-pull", null, ct);
+        rugPull.EnsureSuccessStatusCode();
+
+        await using var client = await ConnectAsAsync("demo-agent");
+        var tools = await client.ListToolsAsync(cancellationToken: ct);
+
+        var tool = Assert.Single(tools); // export_all_customers is pinned but not granted
+        Assert.Equal("lookup_customer", tool.Name);
+        Assert.Equal("Look up a single customer by id.", tool.Description);
+    }
+
+    [Fact]
+    public async Task Quarantined_server_is_a_403()
+    {
+        await PublishAsync(new ServerQuarantined(_crmServerId, "crm", "sha256:pinned", "sha256:observed", "Manifest drift", DateTime.UtcNow));
+
+        using var response = await PostAsync("demo-agent", "tools/call", "lookup_customer");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Contains("quarantined", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task Unknown_server_is_a_404()
+    {
+        using var response = await PostAsync("demo-agent", "tools/call", "lookup_customer", serverId: "never-approved");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    private async Task PublishAsync<T>(T message) where T : class
+    {
+        var harness = _gateway.Services.GetTestHarness();
+        await harness.Bus.Publish(message, TestContext.Current.CancellationToken);
+        Assert.True(await harness.Consumed.Any<T>(TestContext.Current.CancellationToken), $"{typeof(T).Name} was not consumed");
     }
 
     [Fact]
@@ -105,10 +160,11 @@ public sealed class GatewayEndToEndTests : IAsyncLifetime
 
     private const string McpRequestInspectorVersion = Gateway.API.Features.McpProxy.McpRequestInspector.SupportedProtocolVersion;
 
-    private async Task<HttpResponseMessage> PostAsync(string? agentId, string method, string? bodyName = null, string? headerName = null)
+    private async Task<HttpResponseMessage> PostAsync(string? agentId, string method, string? bodyName = null, string? headerName = null,
+        string serverId = "crm")
     {
         var http = _gateway.CreateClient();
-        var request = new HttpRequestMessage(HttpMethod.Post, "/mcp/crm")
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/mcp/{serverId}")
         {
             Content = new StringContent(McpRequestInspectorTests.Body(method, bodyName), Encoding.UTF8, "application/json")
         };

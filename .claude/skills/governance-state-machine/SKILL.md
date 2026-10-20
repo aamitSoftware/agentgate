@@ -17,13 +17,14 @@ transition, writes the audit entry and rides on the domain event. Commands imple
 
 ## Lifecycles (seed from the plan; adjust only with a plan change)
 
+McpServer rows match `Registry.Persistence/Data/ServerStatusTransition.json` as seeded in M2. M3 adds
+Discovered → SubmitForReview → UnderReview, Quarantined → SubmitForReview → UnderReview, and Retire.
+
 | Aggregate (service) | CurrentStatus | ActionType | DestinationStatus |
 |---|---|---|---|
-| McpServer (Registry) | Discovered | SubmitForReview | UnderReview |
-| | UnderReview | Approve | Approved |
+| McpServer (Registry) | UnderReview (initial, set by `Register`) | Approve | Approved |
 | | Approved | Quarantine | Quarantined |
-| | Quarantined | SubmitForReview | UnderReview |
-| | Approved, Quarantined | Retire | Retired |
+| | Quarantined | Approve | Approved |
 | Grant (Review) | Requested | Approve | PendingApproval |
 | | PendingApproval | Approve | Active |
 | | Requested, PendingApproval | Reject | Rejected |

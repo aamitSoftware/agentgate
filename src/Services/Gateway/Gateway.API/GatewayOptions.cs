@@ -8,17 +8,8 @@ public sealed class GatewayOptions
     [Required]
     public string Audience { get; init; } = default!;
 
-    /// <summary>serverId → upstream MCP endpoint. M2 replaces this with a local copy built from Registry events.</summary>
-    public Dictionary<string, UpstreamServer> Servers { get; init; } = [];
-
     /// <summary>Static grants for M1. M3 replaces this with a local copy built from Review's grant events.</summary>
     public List<GrantRule> Grants { get; init; } = [];
-}
-
-public sealed class UpstreamServer
-{
-    [Required, Url]
-    public string Url { get; init; } = default!;
 }
 
 public sealed class GrantRule

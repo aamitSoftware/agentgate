@@ -8,7 +8,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\AgentGate.ServiceDefaults\AgentGate.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\AgentGate.IntegrationEvents\AgentGate.IntegrationEvents.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Blocks.AspNetCore\Blocks.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Blocks.Messaging\Blocks.Messaging.csproj" />
   </ItemGroup>
 
 </Project>

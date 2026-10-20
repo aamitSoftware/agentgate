@@ -2,8 +2,10 @@ using System.Diagnostics;
 using System.Net;
 using Blocks.AspNetCore;
 using Blocks.Core;
+using Blocks.Messaging;
 using Gateway.API;
 using Gateway.API.Features.McpProxy;
+using Gateway.API.Features.Catalog;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Yarp.ReverseProxy.Forwarder;
 
@@ -25,6 +27,9 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddHttpForwarder();
 builder.Services.AddSingleton<GrantTable>();
+builder.Services.AddSingleton<ServerCatalog>();
+// no outbox: the gateway owns no transactional state (its local copy is rebuilt from events)
+builder.AddMessaging("gateway", typeof(ServerCatalog).Assembly);
 // one pooled client for all upstream MCP servers, configured as YARP recommends for proxying
 builder.Services.AddSingleton(new HttpMessageInvoker(new SocketsHttpHandler
 {

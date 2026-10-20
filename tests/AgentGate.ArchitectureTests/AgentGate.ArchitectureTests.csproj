@@ -12,6 +12,9 @@
     <ProjectReference Include="..\..\src\BuildingBlocks\Blocks.Exceptions\Blocks.Exceptions.csproj" />
     <ProjectReference Include="..\..\src\BuildingBlocks\Blocks.Mediator\Blocks.Mediator.csproj" />
     <ProjectReference Include="..\..\src\BuildingBlocks\Blocks.Messaging\Blocks.Messaging.csproj" />
+    <ProjectReference Include="..\..\src\Services\Registry\Registry.Application\Registry.Application.csproj" />
+    <ProjectReference Include="..\..\src\Services\Registry\Registry.Domain\Registry.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Services\Registry\Registry.Persistence\Registry.Persistence.csproj" />
   </ItemGroup>
 
 </Project>

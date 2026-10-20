@@ -26,7 +26,7 @@ public class BuildingBlocksTests
     public void Core_stays_free_of_infrastructure_frameworks() =>
         ShouldNotDependOn(typeof(Guard).Assembly, _frameworks);
 
-    private static void ShouldNotDependOn(Assembly assembly, string[] forbidden)
+    internal static void ShouldNotDependOn(Assembly assembly, string[] forbidden)
     {
         var result = Types.InAssembly(assembly).ShouldNot().HaveDependencyOnAny(forbidden).GetResult();
 

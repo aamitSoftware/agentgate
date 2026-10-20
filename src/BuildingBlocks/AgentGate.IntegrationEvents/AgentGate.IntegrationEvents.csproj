@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Contracts only: flat records, no references (no domain, no MassTransit, no EF). -->
+</Project>
