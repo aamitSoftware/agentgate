@@ -55,6 +55,7 @@ public static class Roles
     public const string RegistryAdmin = "registry-admin";       // registers servers and agents
     public const string SecurityReviewer = "security-reviewer"; // reviews manifests, approves grants (four-eyes)
     public const string Auditor = "auditor";                    // read-only hub and audit trail
+    public const string SnapshotReader = "snapshot-reader";     // service-to-service: Review -> Registry gRPC only
 }
 
 builder.Services.AddAuthorizationBuilder()
@@ -84,8 +85,12 @@ A resource check answers "may *this* caller touch *this* resource", from data th
 - **Four-eyes is not authorization** - it is a domain invariant on `Grant`/`ManifestReview`
   (`DomainException` when the same `ActorId` approves twice).
 
-Which claim identifies an agent at the Gateway (`sub` of the service account vs `azp`/`client_id`, which
-matches `Agent.ClientId`) is an open M1 decision - confirm before writing the grant lookup.
+An agent is identified at the Gateway by the token's `azp` (its Keycloak client id), which is
+`Agent.ClientId` in Registry and `GrantActivated.AgentClientId` in the gateway's local copy.
+
+**Service-to-service:** the one gRPC call authenticates as the calling service (Review's `agentgate-review`
+client, role `snapshot-reader`, `Policies.SnapshotReader` on Registry), never with a forwarded user token
+(ADR 0004).
 
 ## Actor stamping
 

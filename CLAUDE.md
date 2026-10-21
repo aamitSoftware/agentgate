@@ -4,6 +4,7 @@ Governance control plane for AI agents' MCP tool access. Design and milestones: 
 
 ## Layout
 - `src/BuildingBlocks/Blocks.*` — shared primitives (Domain, Core, Exceptions, EntityFrameworkCore, Mediator, AspNetCore, Messaging)
+- `src/BuildingBlocks/AgentGate.*` — cross-service contracts: `IntegrationEvents`, `Grpc.Contracts` (the one gRPC call), `Abstractions` (roles, system actors)
 - `src/Services/{Registry,Review,Gateway,Hub}/{X}.API|Application|Domain|Persistence` (added per milestone)
 - `src/AgentGate.AppHost`, `src/AgentGate.ServiceDefaults` — Aspire
 - `tests/` — architecture tests, unit tests, Testcontainers integration tests

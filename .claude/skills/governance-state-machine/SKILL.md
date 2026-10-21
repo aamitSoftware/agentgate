@@ -17,14 +17,20 @@ transition, writes the audit entry and rides on the domain event. Commands imple
 
 ## Lifecycles (seed from the plan; adjust only with a plan change)
 
-McpServer rows match `Registry.Persistence/Data/ServerStatusTransition.json` as seeded in M2. M3 adds
-Discovered → SubmitForReview → UnderReview, Quarantined → SubmitForReview → UnderReview, and Retire.
+Rows match the seeds as of M3: `Registry.Persistence/Data/ServerStatusTransition.json`,
+`Review.Persistence/Data/ReviewStatusTransition.json` and `GrantStatusTransition.json`. Discovered and Retire
+for servers are still deferred.
 
 | Aggregate (service) | CurrentStatus | ActionType | DestinationStatus |
 |---|---|---|---|
 | McpServer (Registry) | UnderReview (initial, set by `Register`) | Approve | Approved |
+| | UnderReview, Quarantined | Reject | Rejected |
 | | Approved | Quarantine | Quarantined |
 | | Quarantined | Approve | Approved |
+| ManifestReview (Review) | Open (initial, set by `Open`) | Approve | PartiallyApproved |
+| | PartiallyApproved | Approve | Approved |
+| | Open, PartiallyApproved | Reject | Rejected |
+| | Open, PartiallyApproved | Supersede | Superseded |
 | Grant (Review) | Requested | Approve | PendingApproval |
 | | PendingApproval | Approve | Active |
 | | Requested, PendingApproval | Reject | Rejected |
@@ -142,8 +148,10 @@ public void Quarantine(string observedHash, ServerStateMachineFactory stateMachi
 stays private.
 
 Rules the table can't express stay in the behavior, checked before `SetStatus` mutates anything - e.g.
-four-eyes on `Grant.Approve`: when moving PendingApproval -> Active, the `ActorId` must differ from the
-first approver, else `DomainException`. The authoritative manifest-hash check is passed in as a value
+four-eyes on `Grant.Approve` and `ManifestReview.Approve` (`Review.Domain/FourEyes.cs`): the completing
+approval's `ActorId` must differ from the first approver, else `DomainException`. A behavior that adds such
+rules calls `stateMachineFactory.ValidateTransition` first, so an illegal move reports as illegal rather
+than as a broken rule. The authoritative manifest-hash check is passed in as a value
 from the handler (`grpc-communication`).
 
 `Grant` mirrors all of the above with `GrantStatus`, `GrantActionType`, `GrantStatusTransition`,

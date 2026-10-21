@@ -27,10 +27,10 @@ using ProtoBuf.Grpc;
 
 namespace AgentGate.Grpc.Contracts.Registry;
 
-[ServiceContract]
+[Service("agentgate.registry.RegistryService")]       // protobuf-net.Grpc's own attributes: no System.ServiceModel
 public interface IRegistryService
 {
-    [OperationContract]
+    [Operation("GetServerSnapshot")]
     ValueTask<ServerSnapshot> GetServerSnapshotAsync(ServerSnapshotRequest request, CallContext context = default);
 }
 
@@ -43,9 +43,10 @@ public sealed class ServerSnapshotRequest
 [ProtoContract]
 public sealed class ServerSnapshot
 {
-    [ProtoMember(1)] public string Status { get; set; } = default!;        // ServerStatus name; contracts don't reference domains
-    [ProtoMember(2)] public string ManifestHash { get; set; } = default!;
-    [ProtoMember(3)] public List<string> ToolNames { get; set; } = [];
+    [ProtoMember(1)] public string Status { get; set; } = "";               // ServerStatus name; contracts don't reference domains
+    [ProtoMember(2)] public string PinnedManifestHash { get; set; } = "";   // what agents see now
+    [ProtoMember(3)] public string PendingManifestHash { get; set; } = "";  // what is under review now
+    [ProtoMember(4)] public List<string> PinnedToolNames { get; set; } = [];
 }
 ```
 
@@ -63,57 +64,63 @@ public sealed class RegistryGrpcService(McpServerRepository servers) : IRegistry
         return new ServerSnapshot
         {
             Status = server.Status.ToString(),
-            ManifestHash = server.PinnedManifest?.Hash ?? "",
-            ToolNames = server.PinnedManifest?.Tools.Select(tool => tool.Name).ToList() ?? []
+            PinnedManifestHash = server.PinnedManifest?.Hash ?? "",
+            PendingManifestHash = server.PendingManifest?.Hash ?? "",
+            PinnedToolNames = server.PinnedManifest?.ToolNames.ToList() ?? []
         };
     }
 }
 
 // DependencyInjection: builder.Services.AddCodeFirstGrpc();
-// Program.cs:          app.MapGrpcService<RegistryGrpcService>();
+// Program.cs:          app.MapGrpcService<RegistryGrpcService>().RequireAuthorization(Policies.SnapshotReader);
 ```
 
 There is no gRPC exception interceptor: a `NotFoundException` reaches the client as an `RpcException`.
-The caller treats any `RpcException` as "cannot verify" and refuses the transition - fail closed.
-Service-to-service authentication for this call is not defined in the plan yet; decide it at M3 before
-exposing the endpoint beyond the Aspire network.
+The caller treats any `RpcException` as "cannot verify" and refuses the transition - fail closed
+(`RegistrySnapshots.GetSnapshotOrThrowAsync` turns it into a 503).
+
+**Identity and transport (ADR 0004).** The caller authenticates as itself: Review's `agentgate-review`
+client-credentials token, realm role `snapshot-reader`, never a user's token. gRPC needs HTTP/2 and a
+cleartext Kestrel endpoint speaks one protocol, so under the AppHost Registry binds `GRPC_PORT` as
+HTTP/2-only next to its REST `HTTP_PORT`.
 
 ## Phase 3 - client registration (Review.API)
 
 ```csharp
-builder.Services.AddCodeFirstGrpcClient<IRegistryService>(options =>
-    options.Address = new Uri("https+http://registry"));   // Aspire service discovery; resilience from ServiceDefaults
+builder.Services.AddCodeFirstGrpcClient<IRegistryService>((serviceProvider, options) =>
+        options.Address = new Uri("http://_grpc.registry"))   // the named HTTP/2 endpoint, via service discovery
+    .AddHttpMessageHandler<ServiceTokenHandler>();           // Review's own token (Review.API/RegistryClient)
 ```
 
 Never create a `GrpcChannel` by hand. The contract interface is then injectable.
 
 ## Phase 4 - handler usage: authoritative check, then mutate
 
-Fetch the snapshot, pass the facts into the domain behavior, let the domain decide (`DomainException`
--> 400). Always pass the cancellation token through `CallOptions`.
+Fetch the snapshot only for the approval that completes the decision (earlier approvals change nothing
+agents see), pass the facts into the domain behavior, let the domain decide (`DomainException` -> 400).
 
 ```csharp
-public sealed class ApproveManifestHandler(
-    ManifestReviewRepository reviews, IRegistryService registry, ReviewStateMachineFactory stateMachineFactory)
-    : ICommandHandler<ApproveManifestCommand>
+public sealed class ApproveReviewHandler(ManifestReviewRepository reviews, IRegistryService registry,
+    ReviewStateMachineFactory stateMachineFactory) : ICommandHandler<ApproveReviewCommand>
 {
-    public async ValueTask<Unit> Handle(ApproveManifestCommand command, CancellationToken cancellationToken)
+    public async ValueTask<Unit> Handle(ApproveReviewCommand command, CancellationToken cancellationToken)
     {
         var review = await reviews.GetByIdOrThrowAsync(command.ReviewId, cancellationToken);
 
-        var snapshot = await registry.GetServerSnapshotAsync(
-            new ServerSnapshotRequest { ServerId = review.ServerId },
-            new CallOptions(cancellationToken: cancellationToken));
+        var currentPendingHash = review.AwaitsFinalApproval
+            ? (await registry.GetSnapshotOrThrowAsync(review.ServerId, cancellationToken)).PendingManifestHash
+            : null;
 
-        review.Approve(snapshot.ManifestHash, stateMachineFactory, command);   // throws if the hash moved on
+        review.Approve(currentPendingHash, stateMachineFactory, command);   // throws if the hash moved on
         await reviews.SaveChangesAsync(cancellationToken);
         return Unit.Value;
     }
 }
 ```
 
-`ActivateGrant` follows the same shape: snapshot, then `grant.Activate(snapshot..., factory, command)`
-rejects unless the server is `Approved` and every granted tool is in `ToolNames`.
+`ApproveGrantHandler` follows the same shape: on the activating approval it maps the snapshot to
+`CurrentServerState`, and `grant.Approve` rejects unless the server is `Approved` and every granted tool
+is in `PinnedToolNames`.
 
 ## The mistake to avoid
 
