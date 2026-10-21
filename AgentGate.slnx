@@ -8,6 +8,8 @@
     <Project Path="src/AgentGate.ServiceDefaults/AgentGate.ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/AgentGate.Abstractions/AgentGate.Abstractions.csproj" />
+    <Project Path="src/BuildingBlocks/AgentGate.Grpc.Contracts/AgentGate.Grpc.Contracts.csproj" />
     <Project Path="src/BuildingBlocks/AgentGate.IntegrationEvents/AgentGate.IntegrationEvents.csproj" />
     <Project Path="src/BuildingBlocks/Blocks.AspNetCore/Blocks.AspNetCore.csproj" />
     <Project Path="src/BuildingBlocks/Blocks.Core/Blocks.Core.csproj" />

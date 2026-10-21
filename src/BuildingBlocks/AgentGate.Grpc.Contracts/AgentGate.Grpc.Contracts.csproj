@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The one synchronous contract (code-first protobuf-net.Grpc). Contracts only: no domain references. -->
+
+  <ItemGroup>
+    <PackageReference Include="protobuf-net.Grpc" />
+  </ItemGroup>
+
+</Project>
