@@ -30,14 +30,17 @@ public sealed class GlobalExceptionHandler(IProblemDetailsService problemDetails
             _ => StatusCodes.Status500InternalServerError
         };
 
-        if (statusCode >= StatusCodes.Status500InternalServerError)
+        // an HttpException is thrown on purpose with a message written for the client (e.g. 503 "cannot verify");
+        // anything else reaching 5xx is a bug or an outage
+        var isUnexpected = statusCode >= StatusCodes.Status500InternalServerError && exception is not HttpException;
+        if (isUnexpected)
             logger.LogError(exception, "Unhandled exception");
 
         var problem = new ProblemDetails
         {
             Status = statusCode,
             // insight - 5xx messages can leak internals (SQL, paths); clients get a generic title, the trace has the rest
-            Title = statusCode >= StatusCodes.Status500InternalServerError ? "An unexpected error occurred." : exception.Message
+            Title = isUnexpected ? "An unexpected error occurred." : exception.Message
         };
 
         if (exception is ValidationException validationException)

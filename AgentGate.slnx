@@ -30,6 +30,7 @@
     <Project Path="src/Services/Registry/Registry.Persistence/Registry.Persistence.csproj" />
   </Folder>
   <Folder Name="/src/Services/Review/">
+    <Project Path="src/Services/Review/Review.API/Review.API.csproj" />
     <Project Path="src/Services/Review/Review.Application/Review.Application.csproj" />
     <Project Path="src/Services/Review/Review.Domain/Review.Domain.csproj" />
     <Project Path="src/Services/Review/Review.Persistence/Review.Persistence.csproj" />

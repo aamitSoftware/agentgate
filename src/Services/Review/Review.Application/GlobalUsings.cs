@@ -15,5 +15,8 @@ global using Review.Domain.Grants;
 global using Review.Domain.LocalCopies;
 global using Review.Domain.ManifestReviews;
 // Own layers
+global using Review.Application.Features._Shared;
+global using Review.Application.Features.Grants._Shared;
+global using Review.Application.Features.ManifestReviews._Shared;
 global using Review.Persistence;
 global using Review.Persistence.Repositories;
