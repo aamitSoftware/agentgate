@@ -1,0 +1,8 @@
+[
+  { "CurrentStatus": "Open",              "ActionType": "Approve",   "DestinationStatus": "PartiallyApproved" },
+  { "CurrentStatus": "Open",              "ActionType": "Reject",    "DestinationStatus": "Rejected" },
+  { "CurrentStatus": "Open",              "ActionType": "Supersede", "DestinationStatus": "Superseded" },
+  { "CurrentStatus": "PartiallyApproved", "ActionType": "Approve",   "DestinationStatus": "Approved" },
+  { "CurrentStatus": "PartiallyApproved", "ActionType": "Reject",    "DestinationStatus": "Rejected" },
+  { "CurrentStatus": "PartiallyApproved", "ActionType": "Supersede", "DestinationStatus": "Superseded" }
+]

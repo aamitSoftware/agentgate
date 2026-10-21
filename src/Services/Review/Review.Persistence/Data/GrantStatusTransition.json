@@ -1,0 +1,10 @@
+[
+  { "CurrentStatus": "Requested",       "ActionType": "Approve", "DestinationStatus": "PendingApproval" },
+  { "CurrentStatus": "Requested",       "ActionType": "Reject",  "DestinationStatus": "Rejected" },
+  { "CurrentStatus": "PendingApproval", "ActionType": "Approve", "DestinationStatus": "Active" },
+  { "CurrentStatus": "PendingApproval", "ActionType": "Reject",  "DestinationStatus": "Rejected" },
+  { "CurrentStatus": "Active",          "ActionType": "Suspend", "DestinationStatus": "Suspended" },
+  { "CurrentStatus": "Active",          "ActionType": "Revoke",  "DestinationStatus": "Revoked" },
+  { "CurrentStatus": "Suspended",       "ActionType": "Resume",  "DestinationStatus": "Active" },
+  { "CurrentStatus": "Suspended",       "ActionType": "Revoke",  "DestinationStatus": "Revoked" }
+]
