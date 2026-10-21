@@ -15,3 +15,6 @@ public sealed record ServerQuarantined(Guid ServerId, string Name, string Pinned
 /// <param name="PreviousToolsJson">The pinned manifest's tools, so the review can show what changed; null for a new server.</param>
 public sealed record ManifestSubmitted(Guid ServerId, string Name, string ManifestHash, string ToolsJson,
     string? PreviousHash, string? PreviousToolsJson, string Reason, DateTime OccurredOn);
+
+/// <summary>The reviewers refused the pending manifest; the server stays blocked for agents.</summary>
+public sealed record ServerRejected(Guid ServerId, string Name, string RejectedHash, string Reason, DateTime OccurredOn);

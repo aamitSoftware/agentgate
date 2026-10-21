@@ -7,10 +7,12 @@
     </PackageReference>
     <PackageReference Include="Aspire.Keycloak.Authentication" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+    <PackageReference Include="protobuf-net.Grpc.AspNetCore" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\AgentGate.ServiceDefaults\AgentGate.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\AgentGate.Grpc.Contracts\AgentGate.Grpc.Contracts.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Blocks.AspNetCore\Blocks.AspNetCore.csproj" />
     <ProjectReference Include="..\Registry.Application\Registry.Application.csproj" />
   </ItemGroup>

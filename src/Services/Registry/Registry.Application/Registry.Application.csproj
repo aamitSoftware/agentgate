@@ -8,6 +8,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\AgentGate.Abstractions\AgentGate.Abstractions.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\AgentGate.IntegrationEvents\AgentGate.IntegrationEvents.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Blocks.Mediator\Blocks.Mediator.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Blocks.Messaging\Blocks.Messaging.csproj" />

@@ -21,8 +21,6 @@ public sealed class DriftDetectionOptions
 public sealed class DriftDetectionJob(IServiceScopeFactory scopeFactory, IOptions<DriftDetectionOptions> options,
     ILogger<DriftDetectionJob> logger) : BackgroundService
 {
-    public const string ActorId = "system:drift-detector";
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(options.Value.IntervalSeconds));
@@ -59,7 +57,7 @@ public sealed class DriftDetectionJob(IServiceScopeFactory scopeFactory, IOption
                 {
                     ServerId = server.Id,
                     ObservedManifest = observed,
-                    ActorId = ActorId,
+                    ActorId = SystemActors.DriftDetector,
                     Comment = $"Manifest drifted from pinned {server.Pinned.Hash[..12]} to {observed.Hash[..12]}."
                 }, ct);
             }

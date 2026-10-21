@@ -19,13 +19,15 @@ public partial class McpServer
             CreatedOn = action.OccurredOn
         };
         server._auditEntries.Add(ServerAuditEntry.Create(null, ServerStatus.UnderReview, action));
+        server.AddDomainEvent(new ManifestSubmitted(server, action));
         return server;
     }
 
     /// <summary>Pins the manifest under review: from now on it is what agents see and what drift is measured against.</summary>
-    public void Approve(ServerStateMachineFactory stateMachineFactory, IAuditableAction<ServerActionType> action)
+    /// <param name="reviewedHash">The hash the reviewers approved; must still be the pending manifest.</param>
+    public void Approve(string reviewedHash, ServerStateMachineFactory stateMachineFactory, IAuditableAction<ServerActionType> action)
     {
-        var manifest = PendingManifest ?? throw new DomainException("There is no manifest to approve.");
+        var manifest = PendingReviewed(reviewedHash);
 
         SetStatus(ServerStatus.Approved, stateMachineFactory, action);
         PinnedManifest = manifest;
@@ -43,7 +45,31 @@ public partial class McpServer
         SetStatus(ServerStatus.Quarantined, stateMachineFactory, action);
         PendingManifest = observedManifest;
         AddDomainEvent(new ServerQuarantined(this, action));
+        AddDomainEvent(new ManifestSubmitted(this, action)); // the rug-pull loop: the observed manifest goes to re-review
     }
+
+    /// <summary>The reviewers refused the pending manifest: the server stays blocked for agents.</summary>
+    public void Reject(string reviewedHash, ServerStateMachineFactory stateMachineFactory, IAuditableAction<ServerActionType> action)
+    {
+        var manifest = PendingReviewed(reviewedHash);
+
+        SetStatus(ServerStatus.Rejected, stateMachineFactory, action);
+        PendingManifest = null;
+        AddDomainEvent(new ServerRejected(this, manifest.Hash, action));
+    }
+
+    // insight - a decision is about one exact manifest: if the server advertised something else since,
+    // the decision is stale and must not be applied to what is pending now
+    private ToolManifest PendingReviewed(string reviewedHash)
+    {
+        var manifest = PendingManifest ?? throw new DomainException("There is no manifest under review.");
+        if (manifest.Hash != reviewedHash)
+            throw new DomainException(
+                $"The decision was made on manifest {Short(reviewedHash)}, but the pending manifest is {Short(manifest.Hash)}.");
+        return manifest;
+    }
+
+    private static string Short(string hash) => hash.Length > 12 ? hash[..12] : hash;
 
     private void SetStatus(ServerStatus newStatus, ServerStateMachineFactory stateMachineFactory,
         IAuditableAction<ServerActionType> action)

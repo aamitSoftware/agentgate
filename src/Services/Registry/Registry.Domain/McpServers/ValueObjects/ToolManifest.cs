@@ -17,10 +17,11 @@ public sealed class ToolManifest : ValueObject
     private static readonly string[] _pinnedFields =
         ["annotations", "description", "inputSchema", "name", "outputSchema", "title"]; // ordinal order
 
-    private ToolManifest(string toolsJson, string hash)
+    private ToolManifest(string toolsJson, string hash, IReadOnlyList<string> toolNames)
     {
         ToolsJson = toolsJson;
         Hash = hash;
+        ToolNames = toolNames;
     }
 
     /// <summary>Canonical JSON array of tools: sorted by name, object keys sorted, compact.</summary>
@@ -28,6 +29,9 @@ public sealed class ToolManifest : ValueObject
 
     /// <summary>Lowercase hex SHA-256 of <see cref="ToolsJson"/>.</summary>
     public string Hash { get; }
+
+    /// <summary>Tool names in canonical (ordinal) order.</summary>
+    public IReadOnlyList<string> ToolNames { get; }
 
     /// <param name="toolsJson">A JSON array of MCP Tool objects, as returned in a tools/list result.</param>
     public static ToolManifest Create(string toolsJson)
@@ -52,7 +56,8 @@ public sealed class ToolManifest : ValueObject
 
         var canonicalJson = new JsonArray([.. canonicalTools.OrderBy(tool => (string)tool["name"]!, StringComparer.Ordinal)])
             .ToJsonString();
-        return new ToolManifest(canonicalJson, Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(canonicalJson))));
+        return new ToolManifest(canonicalJson, Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(canonicalJson))),
+            [.. names.Order(StringComparer.Ordinal)]);
     }
 
     protected override IEnumerable<object?> GetEqualityComponents()

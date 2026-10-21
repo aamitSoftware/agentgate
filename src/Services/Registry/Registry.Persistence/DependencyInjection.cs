@@ -17,6 +17,7 @@ public static class DependencyInjection
             .AddInterceptors(serviceProvider.GetRequiredService<DispatchDomainEventsInterceptor>()));
         builder.EnrichNpgsqlDbContext<RegistryDbContext>(); // Aspire: tracing, health check, retries
 
+        builder.Services.AddScoped<AgentRepository>();
         builder.Services.AddScoped<McpServerRepository>();
         return builder;
     }

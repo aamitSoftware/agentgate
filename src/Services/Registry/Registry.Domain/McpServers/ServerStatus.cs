@@ -4,12 +4,14 @@ public enum ServerStatus
 {
     UnderReview,
     Approved,
-    Quarantined
+    Quarantined,
+    Rejected
 }
 
 public enum ServerActionType
 {
     Register,
     Approve,
-    Quarantine
+    Quarantine,
+    Reject
 }

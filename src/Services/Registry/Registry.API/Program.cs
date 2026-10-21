@@ -2,6 +2,7 @@ using Blocks.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using Registry.API;
 using Registry.API.Endpoints;
+using Registry.API.Grpc;
 using Registry.Application;
 using Registry.Persistence;
 
@@ -27,5 +28,6 @@ app.UseAuthorization();
 
 app.MapDefaultEndpoints();
 app.MapAllEndpoints();
+app.MapGrpcService<RegistryGrpcService>().RequireAuthorization(Policies.SnapshotReader);
 
 app.Run();

@@ -1,12 +1,15 @@
 using System.Text.Json.Serialization;
+using AgentGate.Abstractions;
 using Blocks.AspNetCore;
+using ProtoBuf.Grpc.Server;
 
 namespace Registry.API;
 
 public static class Policies
 {
     // policy names equal the realm role they require (Realms/agentgate-realm.json)
-    public const string RegistryAdmin = "registry-admin";
+    public const string RegistryAdmin = Roles.RegistryAdmin;
+    public const string SnapshotReader = Roles.SnapshotReader;
 }
 
 public static class DependencyInjection
@@ -30,7 +33,10 @@ public static class DependencyInjection
                     options.RequireHttpsMetadata = false;                  // Keycloak runs on http://localhost:8080
             });
         builder.Services.AddAuthorizationBuilder()
-            .AddPolicy(Policies.RegistryAdmin, policy => policy.RequireRole(Policies.RegistryAdmin));
+            .AddPolicy(Policies.RegistryAdmin, policy => policy.RequireRole(Roles.RegistryAdmin))
+            .AddPolicy(Policies.SnapshotReader, policy => policy.RequireRole(Roles.SnapshotReader));
+
+        builder.Services.AddCodeFirstGrpc();
 
         return builder;
     }
