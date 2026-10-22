@@ -65,7 +65,7 @@ flowchart TB
 
 **Stack:**
 - Backend: .NET 10, Aspire 13, Postgres, RabbitMQ, Keycloak, OpenTelemetry.
-- Console: React, TypeScript, Vite, TanStack Query and Router, Tailwind.
+- Console: React, TypeScript, Vite, TanStack Query and Router, Tailwind, shadcn/ui on Radix; light and dark themes (ADR 0007).
 
 Design: [docs/plan.md](docs/plan.md). Decisions: [docs/adr](docs/adr).
 
@@ -98,15 +98,23 @@ Design: [docs/plan.md](docs/plan.md). Decisions: [docs/adr](docs/adr).
 
 | Screen | Contents |
 |---|---|
-| **Inventory** | Servers with their status, last review risk and any pending re-review; agents; who can call what right now |
-| **Approvals** | The review queue and grant requests with their four-eyes state; a grant request form for admins |
-| **Review** | Scan findings quoting the text that triggered them, the manifest diff rendered like a code review, the decision and the audit trail |
-| **Live activity** | Every gateway decision and governance event over SSE, with denials per agent and spikes flagged |
-| **Server / agent** | Pinned tools, grants (suspend, resume, revoke), timeline, recent calls |
+| **Overview** | What needs a person now (reviews by risk, grant requests, quarantines, suspended grants, denial spikes), posture, recent governance events |
+| **Approvals** | The review queue and grant requests with their four-eyes seals, and the history of decided reviews |
+| **Review** | Scan findings grouped by tool and quoting the text that triggered them; the manifest diff rendered like a code review; the decision and the audit trail |
+| **Servers, Agents, Grants** | Sortable lists with filters kept in the URL; admins request grants from Grants |
+| **Live activity** | Every gateway decision and governance event over SSE; repeated calls collapsed; denials per agent against the gateway's rule |
+| **Server / agent** | Pinned tools, grants (suspend, resume, revoke), recent calls, timeline |
 
-| Re-review after a rug pull | Live activity |
-|---|---|
-| ![Review](docs/images/review.png) | ![Live activity](docs/images/activity.png) |
+Built on a small design system (`web/DESIGN.md`, `.claude/skills/console-ui`):
+- **Look:** light and dark themes, and a colour fingerprint for each manifest hash, so a drifted manifest looks different from the pinned one.
+- **Safety:** irreversible actions are confirmed with a reason, and approving says in words why it isn't available.
+- **Navigation:** ⌘K to jump anywhere, and a read-only mode for auditors.
+
+| Overview | Re-review after a rug pull | Live activity |
+|---|---|---|
+| ![Overview](docs/images/overview.png) | ![Review](docs/images/review.png) | ![Live activity](docs/images/activity.png) |
+
+<sub>Screenshots from a live run of the AppHost and the demo agent, signed in as alice.</sub>
 
 ## Run
 
@@ -141,7 +149,7 @@ dotnet user-secrets set Parameters:anthropic-api-key <your key> --project src/Ag
    - Registry registers the agent and the `crm` server. A review opens at medium risk (`export_all_customers` is a bulk export).
    - Reviewer 1 approves, then tries to give the second approval too and is refused (four-eyes). Reviewer 2 approves.
    - A grant for `lookup_customer` is requested, approved twice and activated after a live check with Registry.
-   - Point at **Inventory**: `crm` is approved, and **Who can call what** shows one grant.
+   - Point at **Servers**: `crm` is approved. **Grants** shows one active grant.
 3. **0:50.** The agent calls tools. `lookup_customer` is allowed and `export_all_customers` is denied: show both rows in Live activity.
 4. **1:10.** The prompt-injected agent keeps calling `export_all_customers`.
    - The **Denials by agent** panel turns red, an **anomaly** row arrives, then **suspended**.
@@ -160,14 +168,15 @@ dotnet user-secrets set Parameters:anthropic-api-key <your key> --project src/Ag
 
 ```bash
 dotnet build && dotnet test && dotnet format --verify-no-changes   # Testcontainers tests need Docker
-cd web && npm ci && npm test && npm run build && npm run screenshots
+cd web && npm ci && npm run lint && npm test && npm run build && npm run screenshots
 ```
 
 - **Tests:**
   - domain unit tests;
   - Testcontainers integration tests on Postgres (outbox atomicity, inbox de-duplication, gRPC contract, Hub API with SSE);
   - architecture tests (layering; the gateway never uses gRPC; the Hub only reads);
-  - Playwright tests of the console against fixture data.
+  - console component tests (Vitest, Testing Library);
+  - Playwright tests of the console against fixture data. They check behaviour and role rules, run axe on every page in both themes, and compare visual baselines.
 - **CI:** both stacks run on every PR.
 - **Structure and conventions:** [CLAUDE.md](CLAUDE.md) and the skills in [.claude/skills](.claude/skills).
 
@@ -181,3 +190,4 @@ cd web && npm ci && npm test && npm run build && npm run screenshots
 | M3 | Review: risk scan, four-eyes, grants, gRPC check | done |
 | M4 | Hub + React console, gateway bootstrap | done |
 | M5 | Anomaly auto-suspend, Claude risk scanner, demo | done |
+| M6 | Console redesign: design system, light and dark, accessibility, vendored design skills | done |

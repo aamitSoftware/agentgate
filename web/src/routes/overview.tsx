@@ -204,7 +204,17 @@ function Posture() {
         label="Servers"
         value={servers.data?.length}
         to="/servers"
-        detail={servers.data && `${byStatus("Approved")} approved · ${byStatus("UnderReview")} in review · ${byStatus("Quarantined")} quarantined`}
+        detail={
+          servers.data &&
+          [
+            `${byStatus("Approved")} approved`,
+            `${byStatus("UnderReview")} in review`,
+            `${byStatus("Quarantined")} quarantined`,
+            byStatus("Rejected") ? `${byStatus("Rejected")} rejected` : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")
+        }
       />
       <Stat label="Agents" value={agents.data?.length} to="/agents" detail="Registered nonhuman identities" />
       <Stat label="Active grants" value={active} to="/grants" detail="Agent × server × tools in force" />

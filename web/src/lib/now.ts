@@ -6,6 +6,7 @@ let now = Date.now();
 let timer: ReturnType<typeof setInterval> | undefined;
 
 function subscribe(listener: () => void) {
+  if (listeners.size === 0) now = Date.now(); // the first subscriber after a quiet spell must not start stale
   listeners.add(listener);
   timer ??= setInterval(() => {
     now = Date.now();

@@ -191,14 +191,9 @@ agentgate/
 - Keycloak OIDC with PKCE.
 - A fetch-based SSE client for the live feed. `EventSource` can't send an `Authorization` header.
 
-**Avoiding the AI-template look:**
-- **Tooling:** install Anthropic's official **`frontend-design`** plugin (from an interactive `claude` terminal, run `/plugin` and search `frontend-design`), and use it for every UI task.
-- **One committed direction: a security operations console.**
-  - Dark-first and dense.
-  - No purple gradients and no marketing hero sections.
-  - Monospace for IDs and hashes.
-  - Colour reserved for risk and status signals.
-  - Manifest diffs rendered like a code review.
+**Design** (superseded by M6, ADR 0007):
+- The M4 direction (dark-first, dense, colour only for signals) proved too thin to stop the generated look.
+- M6 replaced it with a design system: `web/DESIGN.md` is the spec, and `.claude/skills/console-ui` is the rulebook backed by vendored public design skills.
 
 **Screens (v1):**
 
@@ -273,6 +268,33 @@ Each milestone is demoable. Tests and CI start at M0. Estimate: about 8 weeks pa
   - It is off unless an API key is set as an Aspire secret parameter.
 - **Demo.** The DemoAgent runs setup → calls → the prompt-injected agent (blocked, suspended, resumed by a reviewer) → rug pull. The README has a 3-minute demo script.
 - **GIF.** Recorded by Playwright against the console's fixture data (`web/e2e/walkthrough.spec.ts`), not from a live system.
+
+**M6 as built:** the console redesign (ADR 0007).
+- **Skills:** seven public design and React skills vendored into `.claude/skills`, plus the `console-ui` house rules, so later UI work keeps one bar.
+- **Foundation:**
+  - shadcn/ui on Radix;
+  - semantic light and dark tokens, contrast-checked;
+  - a fixed type scale and borders-only depth;
+  - ESLint with React Hooks, jsx-a11y and TanStack Query rules.
+- **Information architecture:**
+  - **Overview:** what needs a person, then posture and recent events.
+  - **Lists:** Servers, Agents and Grants, with filters in the URL.
+  - **Approvals:** tabs (queue, grant requests, decided history).
+  - **Shell:** ⌘K palette, user menu with theme and sign out, mobile sheet, auditor read-only banner.
+- **Safety in the UI:**
+  - Reject and revoke are confirmed with a required reason.
+  - Approve says in words why it is unavailable (four-eyes, missing reason).
+  - Every view has loading, empty, error, 403 and 404 states.
+- **Fixes:**
+  - The OIDC code was exchanged twice under StrictMode.
+  - Expired sessions now open a dialog instead of unmounting the app.
+  - SSE buffers are bounded, the backoff is abortable, a 401 ends the stream and a malformed event is skipped.
+  - The spike panel uses the gateway's real rule (5 in 60 s).
+- **Tests:** component tests (Vitest and Testing Library); Playwright for behaviour, roles, axe in both themes and visual baselines.
+- **Follow-ups:**
+  - Hub `Last-Event-ID` replay, so the feed has no gap across reconnects.
+  - Actor display names recorded next to `ActorId`, so summaries stop showing subject ids.
+  - Pagination on the Hub lists once volumes need it.
 
 **Out of scope for v1** (listed as v2 in the README):
 - Response inspection: instructions injected into results, and changes in tool behaviour.

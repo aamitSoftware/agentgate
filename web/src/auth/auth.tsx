@@ -26,7 +26,7 @@ export const Roles = {
 
 const knownRoles: string[] = Object.values(Roles);
 
-interface AuthState {
+export interface AuthState {
   identity: Identity;
   /** The roles above that this user holds, for display. */
   roles: string[];
@@ -37,7 +37,8 @@ interface AuthState {
   signOut: () => void;
 }
 
-const AuthContext = createContext<AuthState | null>(null);
+/** Exported for tests, which provide an identity without signing in. */
+export const AuthContext = createContext<AuthState | null>(null);
 
 export function useAuth(): AuthState {
   const state = use(AuthContext);
@@ -48,6 +49,14 @@ export function useAuth(): AuthState {
 type Phase = { kind: "loading" } | { kind: "signedOut"; error?: string } | { kind: "signedIn"; user: User };
 
 const returnToKey = "agentgate.returnTo";
+
+let callback: Promise<User> | undefined;
+
+/** An authorization code can be exchanged once; StrictMode runs effects twice, so the exchange is shared. */
+function completeSignIn(): Promise<User> {
+  callback ??= userManager.signinRedirectCallback();
+  return callback;
+}
 
 function signIn() {
   sessionStorage.setItem(returnToKey, window.location.pathname + window.location.search);
@@ -69,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     (async () => {
       if (window.location.pathname === "/auth/callback") {
         try {
-          const user = await userManager.signinRedirectCallback();
+          const user = await completeSignIn();
           const returnTo = sessionStorage.getItem(returnToKey) ?? "/";
           sessionStorage.removeItem(returnToKey);
           window.history.replaceState(null, "", returnTo);
@@ -144,7 +153,10 @@ function SignInFrame({ busy, error }: { busy?: boolean; error?: string }) {
         {error && (
           <Alert variant="destructive">
             <AlertTitle>Sign-in did not complete</AlertTitle>
-            <AlertDescription>{error} Try again; if it keeps failing, check that Keycloak is running.</AlertDescription>
+            <AlertDescription>
+              <p>{error}.</p>
+              <p>Try again; if it keeps failing, check that Keycloak is running.</p>
+            </AlertDescription>
           </Alert>
         )}
         <Button size="lg" onClick={signIn} disabled={busy}>

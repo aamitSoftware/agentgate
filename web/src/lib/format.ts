@@ -18,6 +18,8 @@ const relative = new Intl.RelativeTimeFormat(undefined, { numeric: "auto", style
 
 export function timeAgo(iso: string, now: number = Date.now()): string {
   const elapsed = new Date(iso).getTime() - now;
+  // The shared clock ticks every few seconds and clocks drift: a moment ago is "now", never "in 10 seconds".
+  if (elapsed > 0 && elapsed < 60_000) return relative.format(0, "second");
   for (const [unit, size] of units) {
     if (Math.abs(elapsed) >= size || unit === "second") return relative.format(Math.round(elapsed / size), unit);
   }
