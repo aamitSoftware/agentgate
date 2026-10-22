@@ -123,11 +123,24 @@ Requirements:
 - Node.js 22 or newer;
 - Docker Desktop, for Postgres, RabbitMQ and Keycloak.
 
+**Windows:** start Docker Desktop, then in PowerShell, in the repository folder:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\start.ps1
+```
+
+The script checks the .NET SDK, Node.js, Docker (and starts Docker Desktop if it isn't running) and the ports. It moves Keycloak off 8080 when Windows has reserved that port. Then it starts everything.
+
+**Any platform**, the same without the checks:
+
 ```bash
 dotnet run --project src/AgentGate.AppHost
 ```
 
-- **Console:** http://localhost:5173. The Aspire dashboard link is printed in the terminal.
+Keep that window open; Ctrl+C stops everything. The first run downloads the container images and takes a few minutes.
+
+- **Dashboard:** http://localhost:15180. Wait until every resource shows Running.
+- **Console:** http://localhost:5173.
 - **Accounts:** dev accounts from the realm import. The password is the username followed by `-dev`; for example, alice signs in with `alice-dev`.
 
 | User | Role |
@@ -136,7 +149,9 @@ dotnet run --project src/AgentGate.AppHost
 | `carol` | registry admin: registers servers and agents, requests grants |
 | `dave` | auditor, read-only |
 
-- **Sign-in fails with "connection refused" on `localhost:8080`?** Keycloak needs port 8080. On Windows, Hyper-V and WSL often reserve a port range that includes it; check with `netsh interface ipv4 show excludedportrange protocol=tcp`. Run Keycloak on another port instead:
+- **"Connection refused" on localhost?**
+  - If the dashboard (15180) refuses too, AgentGate isn't running: start it as above and keep the window open.
+  - If only sign-in fails (Keycloak, `localhost:8080`), the port is taken or reserved. On Windows, Hyper-V and WSL often reserve a range that includes it; check with `netsh interface ipv4 show excludedportrange protocol=tcp`. `start.ps1` handles this by itself. Otherwise, run Keycloak on another port:
 
 ```bash
 dotnet run --project src/AgentGate.AppHost -- --KeycloakPort=18080
