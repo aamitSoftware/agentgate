@@ -36,8 +36,55 @@
         "http://localhost:5173"
       ],
       "attributes": {
-        "pkce.code.challenge.method": "S256"
-      }
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5173/*"
+      },
+      "description": "The React console: humans sign in with authorization code + PKCE. One token carries the audiences of the three APIs it calls.",
+      "protocolMappers": [
+        {
+          "name": "registry-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "agentgate-registry",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "review-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "agentgate-review",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "hub-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "agentgate-hub",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "flat-realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "roles",
+            "multivalued": "true",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
     },
     {
       "clientId": "demo-agent",
@@ -248,6 +295,78 @@
       "serviceAccountClientId": "demo-reviewer-2",
       "realmRoles": [
         "security-reviewer"
+      ]
+    },
+    {
+      "username": "alice",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "alice@agentgate.dev",
+      "firstName": "Alice",
+      "lastName": "Reviewer",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "alice-dev",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "security-reviewer"
+      ]
+    },
+    {
+      "username": "bob",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "bob@agentgate.dev",
+      "firstName": "Bob",
+      "lastName": "Reviewer",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "bob-dev",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "security-reviewer"
+      ]
+    },
+    {
+      "username": "carol",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "carol@agentgate.dev",
+      "firstName": "Carol",
+      "lastName": "Admin",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "carol-dev",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "registry-admin"
+      ]
+    },
+    {
+      "username": "dave",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "dave@agentgate.dev",
+      "firstName": "Dave",
+      "lastName": "Auditor",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dave-dev",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "auditor"
       ]
     }
   ]

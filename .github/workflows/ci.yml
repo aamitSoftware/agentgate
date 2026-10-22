@@ -26,3 +26,36 @@ jobs:
 
       # ubuntu runners ship Docker, so Testcontainers-based integration tests (M2+) run here too
       - run: dotnet test --no-build --configuration Release
+
+  console:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+
+      - run: npm run typecheck
+
+      - run: npm test
+
+      - run: npm run build
+
+      # the screens against mocked APIs: the governance story renders and four-eyes is enforced in the UI
+      - run: npx playwright install --with-deps chromium
+
+      - run: npx playwright test --reporter=github
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: console-screenshots
+          path: web/e2e/screenshots

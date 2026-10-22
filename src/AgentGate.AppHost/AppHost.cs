@@ -4,6 +4,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 var postgres = builder.AddPostgres("postgres");
 var registryDb = postgres.AddDatabase("registrydb");
 var reviewDb = postgres.AddDatabase("reviewdb");
+var hubDb = postgres.AddDatabase("hubdb");
 
 var rabbitmq = builder.AddRabbitMQ("rabbitmq")
     .WithManagementPlugin();
@@ -12,9 +13,12 @@ var rabbitmq = builder.AddRabbitMQ("rabbitmq")
 var keycloak = builder.AddKeycloak("keycloak", port: 8080)
     .WithRealmImport("./Realms");
 
-var demoMcpServer = builder.AddProject<Projects.DemoMcpServer>("demo-mcp-server");
+// Endpoints are declared here, not taken from launch profiles (which are machine-local and not in the repo), so a
+// fresh clone wires every service the same way.
+var demoMcpServer = builder.AddProject<Projects.DemoMcpServer>("demo-mcp-server", options => options.ExcludeLaunchProfile = true)
+    .WithHttpEndpoint();
 
-// Registry's ports are explicit: REST is HTTP/1.1, GetServerSnapshot needs HTTP/2, and a cleartext Kestrel endpoint
+// Registry has two ports: REST is HTTP/1.1, GetServerSnapshot needs HTTP/2, and a cleartext Kestrel endpoint
 // speaks only one of them. Registry binds GRPC_PORT as HTTP/2-only (Program.cs).
 var registry = builder.AddProject<Projects.Registry_API>("registry", options => options.ExcludeLaunchProfile = true)
     .WithHttpEndpoint(name: "http", env: "HTTP_PORT")
@@ -24,7 +28,8 @@ var registry = builder.AddProject<Projects.Registry_API>("registry", options => 
     .WithReference(keycloak).WaitFor(keycloak);
 
 // Secrets below match Realms/agentgate-realm.json; dev only.
-var review = builder.AddProject<Projects.Review_API>("review")
+var review = builder.AddProject<Projects.Review_API>("review", options => options.ExcludeLaunchProfile = true)
+    .WithHttpEndpoint()
     .WithReference(reviewDb).WaitFor(reviewDb)
     .WithReference(rabbitmq).WaitFor(rabbitmq)
     .WithReference(keycloak).WaitFor(keycloak)
@@ -32,9 +37,30 @@ var review = builder.AddProject<Projects.Review_API>("review")
     .WithEnvironment("ServiceIdentityOptions__ClientSecret", "dev-only-O1XvrDrtWdbpmlYYsQUwbZzA");
 
 // Knows no MCP servers or grants at startup: Registry's and Review's events tell it what exists and who may call what.
-var gateway = builder.AddProject<Projects.Gateway_API>("gateway")
+var gateway = builder.AddProject<Projects.Gateway_API>("gateway", options => options.ExcludeLaunchProfile = true)
+    .WithHttpEndpoint()
     .WithReference(rabbitmq).WaitFor(rabbitmq)
     .WithReference(keycloak).WaitFor(keycloak);
+
+// Read model built only from events: knows nothing at startup, catches up from the queues.
+var hub = builder.AddProject<Projects.Hub_API>("hub", options => options.ExcludeLaunchProfile = true)
+    .WithHttpEndpoint()
+    .WithReference(hubDb).WaitFor(hubDb)
+    .WithReference(rabbitmq).WaitFor(rabbitmq)
+    .WithReference(keycloak).WaitFor(keycloak);
+
+// The console: Vite's dev server proxies /api/{registry,review,hub} to these references, so the browser sees one
+// origin. Fixed port: the Keycloak client's redirect URI names it. Humans sign in as alice/bob (reviewers),
+// carol (admin) or dave (auditor); passwords are '{name}-dev' (Realms/agentgate-realm.json, dev only).
+builder.AddViteApp("console", "../../web")
+    .WithNpm(install: true) // runs npm install before the dev server starts
+    .WithEndpoint("http", endpoint => endpoint.Port = 5173)
+    .WithReference(registry)
+    .WithReference(review)
+    .WithReference(hub)
+    .WithReference(keycloak)
+    .WaitFor(hub)
+    .WaitFor(keycloak);
 
 builder.AddProject<Projects.DemoAgent>("demo-agent")
     .WithReference(gateway).WaitFor(gateway)
