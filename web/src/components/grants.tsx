@@ -4,9 +4,9 @@ import { useDecideGrant, type GrantVerb } from "@/api/queries";
 import type { HubGrant } from "@/api/types";
 import { useAuth } from "@/auth/auth";
 import { Empty, GrantStatusBadge } from "@/components/signals";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/field";
-import { Table, Td, Th, Tr } from "@/components/ui/table";
+import { Button } from "@/components/legacy-ui/button";
+import { Input } from "@/components/legacy-ui/field";
+import { Table, Td, Th, Tr } from "@/components/legacy-ui/table";
 import { timeAgo } from "@/lib/format";
 
 /** Grants of one server or one agent, with the reviewer actions that apply to their state. */

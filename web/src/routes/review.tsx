@@ -6,11 +6,11 @@ import type { AuditEntry, ReviewDetail, RiskFinding } from "@/api/types";
 import { useAuth } from "@/auth/auth";
 import { PageHeader } from "@/components/shell";
 import { Failure, Mono, ReviewStatusBadge, RiskBadge } from "@/components/signals";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/field";
-import { Panel } from "@/components/ui/panel";
-import { cn } from "@/lib/cn";
+import { Badge } from "@/components/legacy-ui/badge";
+import { Button } from "@/components/legacy-ui/button";
+import { Textarea } from "@/components/legacy-ui/field";
+import { Panel } from "@/components/legacy-ui/panel";
+import { cn } from "@/lib/utils";
 import { diffManifests, type ToolDiff } from "@/lib/diff";
 import { shortId, timeAgo, utc } from "@/lib/format";
 

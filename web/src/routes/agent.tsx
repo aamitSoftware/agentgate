@@ -5,7 +5,7 @@ import { ActivityRow, Timeline } from "@/components/activity";
 import { GrantTable } from "@/components/grants";
 import { PageHeader } from "@/components/shell";
 import { Empty, Failure, Stat } from "@/components/signals";
-import { Panel } from "@/components/ui/panel";
+import { Panel } from "@/components/legacy-ui/panel";
 import { timeAgo } from "@/lib/format";
 
 export function AgentPage() {

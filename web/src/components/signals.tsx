@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import { Badge, type Tone } from "@/components/ui/badge";
+import { Badge, type Tone } from "@/components/legacy-ui/badge";
 import type { GrantStatus, ReviewStatus, RiskLevel, ServerStatus, Severity } from "@/api/types";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils";
 import { shortHash } from "@/lib/format";
 
 // Colour carries meaning here and nowhere else: green = in force, amber = waiting or risky, red = blocked or dangerous.

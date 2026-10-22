@@ -2,8 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { useAccess, useAgents, useReviewQueue, useServers } from "@/api/queries";
 import { PageHeader } from "@/components/shell";
 import { Empty, Failure, Mono, RiskBadge, ServerStatusBadge, Stat } from "@/components/signals";
-import { Panel } from "@/components/ui/panel";
-import { Table, Td, Th, Tr } from "@/components/ui/table";
+import { Panel } from "@/components/legacy-ui/panel";
+import { Table, Td, Th, Tr } from "@/components/legacy-ui/table";
 import { timeAgo } from "@/lib/format";
 
 export function InventoryPage() {

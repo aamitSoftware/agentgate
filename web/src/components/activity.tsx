@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { ActivityItem } from "@/api/types";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/cn";
+import { Badge } from "@/components/legacy-ui/badge";
+import { cn } from "@/lib/utils";
 import { clock, timeAgo, utc } from "@/lib/format";
 import { Dot, severityTone } from "./signals";
 

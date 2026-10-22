@@ -5,9 +5,9 @@ import type { ActivityItem } from "@/api/types";
 import { ActivityRow } from "@/components/activity";
 import { PageHeader } from "@/components/shell";
 import { Dot, Empty, Failure } from "@/components/signals";
-import { Button } from "@/components/ui/button";
-import { Panel } from "@/components/ui/panel";
-import { cn } from "@/lib/cn";
+import { Button } from "@/components/legacy-ui/button";
+import { Panel } from "@/components/legacy-ui/panel";
+import { cn } from "@/lib/utils";
 
 const keep = 1_000;
 const spikeWindowMs = 5 * 60_000;

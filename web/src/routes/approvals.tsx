@@ -6,10 +6,10 @@ import type { ReviewGrant } from "@/api/types";
 import { useAuth } from "@/auth/auth";
 import { PageHeader } from "@/components/shell";
 import { Empty, Failure, GrantStatusBadge, Mono, ReviewStatusBadge, RiskBadge } from "@/components/signals";
-import { Button } from "@/components/ui/button";
-import { Input, Label, Select, Textarea } from "@/components/ui/field";
-import { Panel } from "@/components/ui/panel";
-import { Table, Td, Th, Tr } from "@/components/ui/table";
+import { Button } from "@/components/legacy-ui/button";
+import { Input, Label, Select, Textarea } from "@/components/legacy-ui/field";
+import { Panel } from "@/components/legacy-ui/panel";
+import { Table, Td, Th, Tr } from "@/components/legacy-ui/table";
 import { shortId, timeAgo } from "@/lib/format";
 
 export function ApprovalsPage() {

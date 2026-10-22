@@ -3,7 +3,7 @@ import { Activity, Boxes, LogOut, ShieldCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { useGrantQueue, useReviewQueue } from "@/api/queries";
 import { useAuth } from "@/auth/auth";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/legacy-ui/badge";
 
 export function Shell() {
   const { identity, signOut } = useAuth();

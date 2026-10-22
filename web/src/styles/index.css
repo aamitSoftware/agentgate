@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 @import "@fontsource/ibm-plex-sans/400.css";
 @import "@fontsource/ibm-plex-sans/500.css";
 @import "@fontsource/ibm-plex-sans/600.css";
@@ -6,39 +7,172 @@
 @import "@fontsource/ibm-plex-mono/500.css";
 
 /*
-  One committed direction: a security operations console. Dark and dense; neutral surfaces;
-  colour is reserved for signals (status, risk, decisions) so it means something when it appears.
+  Tokens: web/DESIGN.md (values and contrast checks), rules: .claude/skills/console-ui.
+  Themes switch these variables; components never branch on the theme.
 */
-@theme {
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  color-scheme: light;
+  --radius: 0.5rem;
+
+  --background: oklch(0.985 0.003 250);
+  --foreground: oklch(0.22 0.025 265);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--foreground);
+  --muted: oklch(0.965 0.005 260);
+  --muted-foreground: oklch(0.47 0.025 265);
+  --accent: oklch(0.955 0.012 268);
+  --accent-foreground: oklch(0.22 0.025 265);
+  --secondary: oklch(0.955 0.006 265);
+  --secondary-foreground: var(--foreground);
+  --border: oklch(0.905 0.008 265);
+  --input: oklch(0.87 0.01 265);
+  --ring: oklch(0.47 0.17 268);
+
+  --primary: oklch(0.47 0.17 268);
+  --primary-foreground: oklch(0.99 0 0);
+  --destructive: oklch(0.52 0.19 27);
+  --destructive-foreground: oklch(0.99 0 0);
+
+  --danger: oklch(0.52 0.19 27);
+  --danger-subtle: oklch(0.965 0.022 25);
+  --warning: oklch(0.5 0.11 65);
+  --warning-subtle: oklch(0.97 0.04 85);
+  --success: oklch(0.47 0.11 152);
+  --success-subtle: oklch(0.965 0.03 155);
+  --info: oklch(0.47 0.15 255);
+  --info-subtle: oklch(0.965 0.02 255);
+
+  --diff-add: oklch(0.96 0.04 152);
+  --diff-del: oklch(0.96 0.03 25);
+
+  --sidebar: var(--background);
+  --overlay-shadow: 0 0 0 1px oklch(0 0 0 / 0.06), 0 4px 12px -2px oklch(0 0 0 / 0.1), 0 12px 32px -8px oklch(0 0 0 / 0.12);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: oklch(0.165 0.012 265);
+  --foreground: oklch(0.955 0.006 265);
+  --card: oklch(0.195 0.014 265);
+  --popover: oklch(0.215 0.015 265);
+  --muted: oklch(0.235 0.016 265);
+  --muted-foreground: oklch(0.73 0.018 265);
+  --accent: oklch(0.26 0.03 268);
+  --accent-foreground: oklch(0.955 0.006 265);
+  --secondary: oklch(0.25 0.016 265);
+  --border: oklch(0.3 0.016 265);
+  --input: oklch(0.34 0.018 265);
+  --ring: oklch(0.72 0.13 268);
+
+  --primary: oklch(0.72 0.13 268);
+  --primary-foreground: oklch(0.17 0.03 268);
+  --destructive: oklch(0.74 0.15 25);
+  --destructive-foreground: oklch(0.17 0.03 25);
+
+  --danger: oklch(0.74 0.15 25);
+  --danger-subtle: oklch(0.27 0.06 25);
+  --warning: oklch(0.8 0.13 80);
+  --warning-subtle: oklch(0.28 0.05 75);
+  --success: oklch(0.76 0.13 152);
+  --success-subtle: oklch(0.26 0.045 155);
+  --info: oklch(0.75 0.12 255);
+  --info-subtle: oklch(0.27 0.05 255);
+
+  --diff-add: oklch(0.27 0.05 152);
+  --diff-del: oklch(0.27 0.05 25);
+
+  --overlay-shadow: 0 0 0 1px oklch(1 0 0 / 0.08), 0 12px 32px -8px oklch(0 0 0 / 0.5);
+}
+
+@theme inline {
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
 
-  --color-canvas: #0b0f14;
-  --color-surface: #11161d;
-  --color-raised: #161c24;
-  --color-line: #222a34;
-  --color-line-strong: #2f3946;
-  --color-ink: #e6edf3;
-  --color-ink-muted: #8b96a5;
-  --color-ink-faint: #5d6877;
+  /* Fixed rem scale, ratio about 1.15 (DESIGN.md) */
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 0.875rem;
+  --text-base--line-height: 1.375rem;
+  --text-lg: 1rem;
+  --text-lg--line-height: 1.5rem;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 2rem;
 
-  --color-ok: #3fb950;
-  --color-ok-soft: #3fb95022;
-  --color-warn: #d29922;
-  --color-warn-soft: #d2992226;
-  --color-danger: #f85149;
-  --color-danger-soft: #f8514926;
-  --color-info: #58a6ff;
-  --color-info-soft: #58a6ff1f;
-  --color-accent: #f0883e;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 
-  --color-diff-add: #2ea04326;
-  --color-diff-add-ink: #7ee787;
-  --color-diff-del: #f8514926;
-  --color-diff-del-ink: #ffa198;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --default-transition-duration: 150ms;
+  --default-transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-danger: var(--danger);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-warning: var(--warning);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-success: var(--success);
+  --color-success-subtle: var(--success-subtle);
+  --color-info: var(--info);
+  --color-info-subtle: var(--info-subtle);
+  --color-diff-add: var(--diff-add);
+  --color-diff-del: var(--diff-del);
+  --color-sidebar: var(--sidebar);
+
+  --shadow-overlay: var(--overlay-shadow);
+
+  /* Legacy names used by screens not yet rebuilt on the new components; removed with components/legacy-ui. */
+  --color-canvas: var(--background);
+  --color-surface: var(--card);
+  --color-raised: var(--muted);
+  --color-line: var(--border);
+  --color-line-strong: var(--input);
+  --color-ink: var(--foreground);
+  --color-ink-muted: var(--muted-foreground);
+  --color-ink-faint: var(--muted-foreground);
+  --color-ok: var(--success);
+  --color-ok-soft: var(--success-subtle);
+  --color-warn: var(--warning);
+  --color-warn-soft: var(--warning-subtle);
+  --color-danger-soft: var(--danger-subtle);
+  --color-info-soft: var(--info-subtle);
+  --color-diff-add-ink: var(--success);
+  --color-diff-del-ink: var(--danger);
 }
 
 @layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
   html,
   body,
   #root {
@@ -46,21 +180,50 @@
   }
 
   body {
-    background: var(--color-canvas);
-    color: var(--color-ink);
+    @apply bg-background text-base text-foreground antialiased;
     font-family: var(--font-sans);
-    font-size: 13px;
-    line-height: 1.45;
-    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Browser surfaces carry the palette too (impeccable craft-floor). */
   ::selection {
-    background: #58a6ff44;
+    background: color-mix(in oklch, var(--primary) 22%, transparent);
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-info);
-    outline-offset: 1px;
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  * {
+    scrollbar-color: var(--input) transparent;
+    scrollbar-width: thin;
+  }
+
+  input,
+  textarea {
+    caret-color: var(--primary);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
@@ -70,10 +233,10 @@
 
 @keyframes arrive {
   from {
-    background-color: #58a6ff26;
+    background-color: color-mix(in oklch, var(--primary) 12%, transparent);
   }
 }
 
 @utility animate-arrive {
-  animation: arrive 1.6s ease-out;
+  animation: arrive 1.2s var(--ease-out);
 }
