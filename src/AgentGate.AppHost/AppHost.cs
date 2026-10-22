@@ -9,9 +9,13 @@ var hubDb = postgres.AddDatabase("hubdb");
 var rabbitmq = builder.AddRabbitMQ("rabbitmq")
     .WithManagementPlugin();
 
-// Fixed port: the token issuer URL must be stable for the browser (React OIDC) and for agents.
+// Fixed port: the token issuer URL must be stable for the browser (React OIDC) and for agents. Plain HTTP: Aspire
+// would otherwise switch Keycloak to HTTPS whenever a .NET dev certificate exists, and the issuer would depend on the machine.
+#pragma warning disable ASPIRECERTIFICATES001 // evaluation API; the only switch for this in Aspire 13
 var keycloak = builder.AddKeycloak("keycloak", port: 8080)
+    .WithoutHttpsCertificate()
     .WithRealmImport("./Realms");
+#pragma warning restore ASPIRECERTIFICATES001
 
 // Endpoints are declared here, not taken from launch profiles (which are machine-local and not in the repo), so a
 // fresh clone wires every service the same way.
@@ -81,5 +85,10 @@ builder.AddProject<Projects.DemoAgent>("demo-agent")
     .WithEnvironment("DemoAgent__Reviewer1ClientSecret", "dev-only-WNa39VaVAfaGDchHBojPSTG8")
     .WithEnvironment("DemoAgent__Reviewer2ClientSecret", "dev-only-gBNYzPIAYcWyB9rNjCxb5b6C")
     .WithExplicitStart(); // run on demand from the dashboard
+
+// Without launch profiles nothing tells a service its environment, and it would start as Production (no migrations,
+// HTTPS-only token metadata). Every project runs in the AppHost's environment instead.
+foreach (var project in builder.Resources.OfType<ProjectResource>())
+    builder.CreateResourceBuilder(project).WithEnvironment("DOTNET_ENVIRONMENT", builder.Environment.EnvironmentName);
 
 builder.Build().Run();
