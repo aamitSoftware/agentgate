@@ -18,6 +18,10 @@
       {
         "name": "snapshot-reader",
         "description": "Service-to-service: may call Registry's GetServerSnapshot (Review only)"
+      },
+      {
+        "name": "gateway-sync",
+        "description": "Service-to-service: may read the servers and grants the gateway enforces (gateway only)"
       }
     ]
   },
@@ -262,6 +266,52 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "agentgate-gateway-service",
+      "name": "AgentGate Gateway service",
+      "description": "DEV ONLY. The gateway's own identity for its startup read of servers and grants. The secret exists only in this local realm import.",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "dev-only-erdcHJamzzttyhE5bu7BssPf",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "protocolMappers": [
+        {
+          "name": "registry-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "agentgate-registry",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "review-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "agentgate-review",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "flat-realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "roles",
+            "multivalued": "true",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
     }
   ],
   "users": [
@@ -367,6 +417,14 @@
       ],
       "realmRoles": [
         "auditor"
+      ]
+    },
+    {
+      "username": "service-account-agentgate-gateway-service",
+      "enabled": true,
+      "serviceAccountClientId": "agentgate-gateway-service",
+      "realmRoles": [
+        "gateway-sync"
       ]
     }
   ]

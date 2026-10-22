@@ -1,11 +1,15 @@
 using System.ComponentModel.DataAnnotations;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using Blocks.Core;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
-namespace Review.API.RegistryClient;
+namespace Blocks.AspNetCore;
 
-/// <summary>Review's own Keycloak client: how it authenticates to Registry for GetServerSnapshot (ADR 0004).</summary>
+/// <summary>A service's own Keycloak client: how it authenticates when it calls another service (ADR 0004).</summary>
 public sealed class ServiceIdentityOptions
 {
     [Required] public string TokenEndpoint { get; init; } = default!;
@@ -13,13 +17,7 @@ public sealed class ServiceIdentityOptions
     [Required] public string ClientSecret { get; init; } = default!;
 }
 
-public sealed class RegistryClientOptions
-{
-    /// <summary>Registry's HTTP/2 endpoint; <c>_grpc.registry</c> resolves the named endpoint through service discovery.</summary>
-    [Required] public string Address { get; init; } = default!;
-}
-
-/// <summary>Client-credentials tokens for Review itself, cached until shortly before they expire.</summary>
+/// <summary>Client-credentials tokens for the service itself, cached until shortly before they expire.</summary>
 // singleton: the cache must outlive the pooled HttpClient handlers, so it creates a client per refresh instead of holding one
 public sealed class ServiceTokenProvider(IHttpClientFactory httpClientFactory, IOptions<ServiceIdentityOptions> options, TimeProvider timeProvider)
 {
@@ -66,12 +64,29 @@ public sealed class ServiceTokenProvider(IHttpClientFactory httpClientFactory, I
         [property: JsonPropertyName("expires_in")] int ExpiresIn);
 }
 
-/// <summary>Puts Review's own token on outgoing calls to Registry (never a user's token: the caller is the service).</summary>
+/// <summary>Puts the service's own token on outgoing calls (never a user's token: the caller is the service).</summary>
 public sealed class ServiceTokenHandler(ServiceTokenProvider tokens) : DelegatingHandler
 {
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await tokens.GetTokenAsync(cancellationToken));
         return await base.SendAsync(request, cancellationToken);
+    }
+}
+
+public static class ServiceIdentityExtensions
+{
+    /// <summary>
+    /// Binds <see cref="ServiceIdentityOptions"/> and registers the token provider and <see cref="ServiceTokenHandler"/>;
+    /// add the handler to each outgoing client with <c>AddHttpMessageHandler&lt;ServiceTokenHandler&gt;()</c>.
+    /// </summary>
+    public static IHostApplicationBuilder AddServiceIdentity(this IHostApplicationBuilder builder)
+    {
+        builder.Services.AddAndValidateOptions<ServiceIdentityOptions>(builder.Configuration);
+        builder.Services.AddSingleton(TimeProvider.System);
+        builder.Services.AddHttpClient(ServiceTokenProvider.HttpClientName);
+        builder.Services.AddSingleton<ServiceTokenProvider>();
+        builder.Services.AddTransient<ServiceTokenHandler>();
+        return builder;
     }
 }

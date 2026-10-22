@@ -44,6 +44,7 @@ public sealed class GatewayEndToEndTests : IAsyncLifetime
         _gateway = new WebApplicationFactory<GatewayOptions>().WithWebHostBuilder(web =>
         {
             web.UseSetting("ConnectionStrings:rabbitmq", "amqp://localhost"); // never dialled: the harness swaps in an in-memory bus
+            web.UseSetting("GatewayOptions:Bootstrap", "false");              // state comes from the events these tests publish
             web.ConfigureTestServices(services =>
             {
                 services.AddMassTransitTestHarness();

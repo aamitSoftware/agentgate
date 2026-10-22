@@ -4,6 +4,7 @@ using Blocks.AspNetCore;
 using Blocks.Core;
 using Blocks.Messaging;
 using Gateway.API;
+using Gateway.API.Features.Bootstrap;
 using Gateway.API.Features.McpProxy;
 using Gateway.API.Features.Catalog;
 using Gateway.API.Features.Grants;
@@ -33,6 +34,8 @@ builder.Services.AddSingleton<GrantTable>();
 builder.Services.AddSingleton<ServerCatalog>();
 builder.Services.AddSingleton<ObservationQueue>();
 builder.Services.AddHostedService<ObservationPublisher>();
+if (builder.Configuration.GetValue($"{nameof(GatewayOptions)}:{nameof(GatewayOptions.Bootstrap)}", defaultValue: true))
+    builder.AddGatewayBootstrap();
 // no outbox: the gateway owns no transactional state (its local copy is rebuilt from events)
 builder.AddMessaging("gateway", typeof(ServerCatalog).Assembly);
 // one pooled client for all upstream MCP servers, configured as YARP recommends for proxying

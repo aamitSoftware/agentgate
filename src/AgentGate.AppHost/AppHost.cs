@@ -36,11 +36,14 @@ var review = builder.AddProject<Projects.Review_API>("review", options => option
     .WithReference(registry) // GetServerSnapshot, resolved as http://_grpc.registry
     .WithEnvironment("ServiceIdentityOptions__ClientSecret", "dev-only-O1XvrDrtWdbpmlYYsQUwbZzA");
 
-// Knows no MCP servers or grants at startup: Registry's and Review's events tell it what exists and who may call what.
+// Reads the servers and grants it enforces from Registry and Review at startup, then follows their events.
 var gateway = builder.AddProject<Projects.Gateway_API>("gateway", options => options.ExcludeLaunchProfile = true)
     .WithHttpEndpoint()
     .WithReference(rabbitmq).WaitFor(rabbitmq)
-    .WithReference(keycloak).WaitFor(keycloak);
+    .WithReference(keycloak).WaitFor(keycloak)
+    .WithReference(registry)
+    .WithReference(review)
+    .WithEnvironment("ServiceIdentityOptions__ClientSecret", "dev-only-erdcHJamzzttyhE5bu7BssPf");
 
 // Read model built only from events: knows nothing at startup, catches up from the queues.
 var hub = builder.AddProject<Projects.Hub_API>("hub", options => options.ExcludeLaunchProfile = true)

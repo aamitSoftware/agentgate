@@ -7,6 +7,7 @@ using MassTransit.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Registry.Application.Features.McpServers.ApplyReviewDecision;
+using Registry.Application.Features.McpServers.GetGatewayServers;
 using Registry.Application.Features.McpServers.QuarantineServer;
 using Registry.Application.Features.McpServers.RegisterServer;
 using Registry.Application.StateMachines;
@@ -113,6 +114,20 @@ public sealed class ReviewDecisionConsumerTests : IAsyncLifetime
         Assert.True(await FaultedAsync());
         var server = await LoadAsync(serverId);
         Assert.Equal((ServerStatus.Quarantined, _drifted), (server.Status, server.PendingManifest));
+    }
+
+    [Fact]
+    public async Task The_gateway_snapshot_lists_pinned_servers_with_their_last_change()
+    {
+        var approvedId = await RegisterAsync();
+        await DeliverAsync(Decision(approvedId, _manifest.Hash, ManifestReviewCompletedConsumer.Approved));
+
+        IReadOnlyList<GatewayServerDto> rows = [];
+        await InScope(async db => rows = await new GetGatewayServersHandler(db).Handle(new GetGatewayServersQuery(), TestContext.Current.CancellationToken));
+
+        var row = Assert.Single(rows); // nothing else is pinned
+        Assert.Equal(("crm", "Approved", _manifest.Hash, _manifest.ToolsJson), (row.Name, row.Status, row.ManifestHash, row.ToolsJson));
+        Assert.True(row.AsOf > DateTime.UtcNow.AddMinutes(-1));
     }
 
     [Fact]
