@@ -54,6 +54,7 @@ const eventLabels: Record<string, string> = {
   GrantActivated: "grant",
   GrantSuspended: "suspended",
   GrantRevoked: "revoked",
+  AnomalyDetected: "anomaly",
 };
 
 export function eventLabel(kind: string | null): string {

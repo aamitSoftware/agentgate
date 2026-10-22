@@ -4,6 +4,7 @@ using Blocks.AspNetCore;
 using Blocks.Core;
 using Blocks.Messaging;
 using Gateway.API;
+using Gateway.API.Features.Anomalies;
 using Gateway.API.Features.Bootstrap;
 using Gateway.API.Features.McpProxy;
 using Gateway.API.Features.Catalog;
@@ -34,6 +35,9 @@ builder.Services.AddSingleton<GrantTable>();
 builder.Services.AddSingleton<ServerCatalog>();
 builder.Services.AddSingleton<ObservationQueue>();
 builder.Services.AddHostedService<ObservationPublisher>();
+builder.Services.AddSingleton<DenialSpikeDetector>();
+builder.Services.AddSingleton<AnomalyQueue>();
+builder.Services.AddHostedService<AnomalyPublisher>();
 if (builder.Configuration.GetValue($"{nameof(GatewayOptions)}:{nameof(GatewayOptions.Bootstrap)}", defaultValue: true))
     builder.AddGatewayBootstrap();
 // no outbox: the gateway owns no transactional state (its local copy is rebuilt from events)
