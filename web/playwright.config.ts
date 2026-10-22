@@ -4,6 +4,8 @@ import { defineConfig } from "@playwright/test";
 // governance story and keeps screenshots for the docs. Uses a pre-installed Chromium when one is provided.
 export default defineConfig({
   testDir: "./e2e",
+  // one set of visual baselines for every machine: Chromium is pinned by @playwright/test and fonts are bundled
+  snapshotPathTemplate: "{testDir}/__snapshots__/{arg}{ext}",
   timeout: 30_000,
   use: {
     baseURL: "http://localhost:5199",

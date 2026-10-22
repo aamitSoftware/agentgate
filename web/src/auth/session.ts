@@ -12,8 +12,21 @@ export const userManager = new UserManager({
   userStore: new WebStorageStateStore({ store: window.sessionStorage }),
 });
 
+let renewing: Promise<User | null> | undefined;
+
+/** One silent renewal at a time, however many calls notice the expired token together. */
+function renewOnce(): Promise<User | null> {
+  renewing ??= userManager
+    .signinSilent()
+    .catch(() => null)
+    .finally(() => (renewing = undefined));
+  return renewing;
+}
+
+/** The signed-in user's access token, renewed silently if it has expired; null when the session is gone. */
 export async function getAccessToken(): Promise<string | null> {
-  const user = await userManager.getUser();
+  let user = await userManager.getUser();
+  if (user?.expired) user = await renewOnce();
   return user && !user.expired ? user.access_token : null;
 }
 
@@ -27,7 +40,7 @@ export interface Identity {
 /** The access token's claims are what the APIs authorize on, so the console reads roles from there too. */
 export function identityOf(user: User): Identity {
   const payload = decodeJwtPayload(user.access_token);
-  const roles = Array.isArray(payload.roles) ? (payload.roles as string[]) : [];
+  const roles = Array.isArray(payload.roles) ? payload.roles.filter((role): role is string => typeof role === "string") : [];
   return {
     sub: String(payload.sub ?? user.profile.sub),
     username: String(user.profile.preferred_username ?? payload.preferred_username ?? user.profile.sub),

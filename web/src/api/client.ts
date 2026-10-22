@@ -10,7 +10,28 @@ export class ApiError extends Error {
   ) {
     super(message);
   }
+
+  get forbidden() {
+    return this.status === 403;
+  }
+
+  get notFound() {
+    return this.status === 404;
+  }
 }
+
+let unauthorized: (() => void) | undefined;
+
+/** The auth layer listens here: a 401 means the session is gone, and it offers to sign in again. */
+export function onUnauthorized(handler: () => void): () => void {
+  unauthorized = handler;
+  return () => {
+    if (unauthorized === handler) unauthorized = undefined;
+  };
+}
+
+/** For callers outside `api` (the activity stream) that learn the session is gone. */
+export const reportUnauthorized = () => unauthorized?.();
 
 async function problemTitle(response: Response): Promise<string> {
   try {
@@ -22,17 +43,24 @@ async function problemTitle(response: Response): Promise<string> {
   }
 }
 
+const sessionExpired = "Your session has expired. Sign in again to continue.";
+
 /** Calls a service through the dev-server proxy (/api/{service}) with the signed-in user's token. */
 export async function api<T>(service: Service, path: string, init: RequestInit = {}): Promise<T> {
   const token = await getAccessToken();
-  const response = await fetch(`/api/${service}${path}`, {
-    ...init,
-    headers: {
-      ...(init.body ? { "Content-Type": "application/json" } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...init.headers,
-    },
-  });
+  if (!token) {
+    unauthorized?.();
+    throw new ApiError(401, sessionExpired);
+  }
+  const headers = new Headers(init.headers);
+  if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  headers.set("Authorization", `Bearer ${token}`);
+
+  const response = await fetch(`/api/${service}${path}`, { ...init, headers });
+  if (response.status === 401) {
+    unauthorized?.();
+    throw new ApiError(401, sessionExpired);
+  }
   if (!response.ok) throw new ApiError(response.status, await problemTitle(response));
   return (response.status === 204 ? undefined : await response.json()) as T;
 }

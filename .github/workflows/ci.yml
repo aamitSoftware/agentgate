@@ -56,13 +56,16 @@ jobs:
 
       - run: npm ci
 
+      - run: npm run lint
+
       - run: npm run typecheck
 
       - run: npm test
 
       - run: npm run build
 
-      # the screens against mocked APIs: the governance story renders and four-eyes is enforced in the UI
+      # the screens against mocked APIs: the governance story, four-eyes and role rules, axe in both themes,
+      # and visual baselines (e2e/__snapshots__)
       - run: npx playwright install --with-deps chromium
 
       - run: npx playwright test --reporter=github
@@ -71,4 +74,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: console-screenshots
-          path: web/e2e/screenshots
+          path: |
+            web/e2e/screenshots
+            web/test-results
