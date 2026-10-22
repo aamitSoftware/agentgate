@@ -12,8 +12,10 @@ using ModelContextProtocol.Protocol;
 
 // The scripted demo. As an admin: register the agent and the CRM MCP server, and request a grant.
 // As two different security reviewers: approve the manifest review and the grant (four-eyes).
-// As the agent: talk MCP to the server through the gateway. Then the server rug-pulls: AgentGate quarantines it
+// As the agent: talk MCP to the server through the gateway. Then the agent behaves as if prompt-injected: AgentGate
+// blocks it and suspends its grant until a reviewer resumes it. Then the server rug-pulls: AgentGate quarantines it
 // and opens a high-risk re-review.
+// Scenario (DemoAgent:Scenario): all (default), setup, call, anomaly, rugpull.
 var builder = Host.CreateApplicationBuilder(args);
 builder.AddServiceDefaults();
 using var host = builder.Build();
@@ -43,6 +45,10 @@ if (scenario is "all" or "call")
         await CallAsync("lookup_customer", new() { ["customerId"] = "C-1001" });
         await CallAsync("export_all_customers", []);
     }
+
+if (scenario is "all" or "anomaly")
+    using (activitySource.StartActivity("demo: prompt-injected agent"))
+        await AnomalyAsync();
 
 if (scenario is "all" or "rugpull")
     using (activitySource.StartActivity("demo: rug pull"))
@@ -180,6 +186,32 @@ async Task<McpClient> ConnectAgentAsync()
     }
 }
 
+async Task AnomalyAsync()
+{
+    Console.WriteLine("agent: a poisoned ticket tells the agent to dump the whole CRM; it keeps trying");
+    for (var attempt = 0; attempt < 6; attempt++)
+        await CallAsync("export_all_customers", []);
+
+    // blocked at the gateway: even the tool it was granted is refused now
+    await CallAsync("lookup_customer", new() { ["customerId"] = "C-1001" });
+
+    var reviewer = await GetTokenAsync("demo-reviewer-1", Required("DemoAgent:Reviewer1ClientSecret"));
+    var suspended = await PollAsync(async () =>
+    {
+        using var response = await SendAsync(HttpMethod.Get, $"{reviewUrl}/grants?status=Suspended", reviewer);
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<List<GrantSummary>>())!
+            .FirstOrDefault(grant => grant.AgentClientId == (configuration["DemoAgent:ClientId"] ?? "demo-agent"));
+    }, "the grant suspension");
+    Console.WriteLine($"review: grant suspended by {suspended.AuditEntries[^1].ActorId}: {suspended.AuditEntries[^1].Comment}");
+
+    await DecideAsync($"{reviewUrl}/grants/{suspended.Id}:resume", reviewer, "demo-reviewer-1 investigates and resumes the grant",
+        "Injected ticket removed from the queue; agent behaviour verified.");
+    await PollAsync(async () => await CallAsync("lookup_customer", new() { ["customerId"] = "C-1001" }) ? "ok" : null,
+        "the gateway to lift the block");
+    Console.WriteLine("gateway: block lifted by the resume; the agent is back to its granted tool only");
+}
+
 async Task RugPullAsync()
 {
     (await http.PostAsync($"{mcpServerUrl}/admin/rug-pull", null)).EnsureSuccessStatusCode();
@@ -271,3 +303,7 @@ internal sealed record ReviewSummary(Guid Id, string ManifestHash, string? Previ
 internal sealed record ReviewDetail(IReadOnlyList<Finding> Findings);
 
 internal sealed record Finding(string ToolName, string Rule, string Severity, string Evidence);
+
+internal sealed record GrantSummary(Guid Id, string AgentClientId, string Status, IReadOnlyList<AuditEntry> AuditEntries);
+
+internal sealed record AuditEntry(string ActorId, string? Comment);

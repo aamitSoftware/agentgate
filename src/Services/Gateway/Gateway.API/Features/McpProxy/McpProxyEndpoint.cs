@@ -1,8 +1,10 @@
 using System.Diagnostics;
 using System.Security.Claims;
 using System.Text.Json;
+using Gateway.API.Features.Anomalies;
 using Gateway.API.Features.Catalog;
 using Gateway.API.Features.Grants;
+using Gateway.API.Features.Observation;
 using Yarp.ReverseProxy.Forwarder;
 
 namespace Gateway.API.Features.McpProxy;
@@ -25,7 +27,8 @@ public static class McpProxyEndpoint
     }
 
     private static async Task HandleAsync(string serverId, HttpContext httpContext, ServerCatalog catalog,
-        GrantTable grants, IHttpForwarder forwarder, HttpMessageInvoker upstreamClient, ILoggerFactory loggerFactory)
+        GrantTable grants, ObservationQueue observations, DenialSpikeDetector anomalies, AnomalyQueue anomalyQueue,
+        IHttpForwarder forwarder, HttpMessageInvoker upstreamClient, ILoggerFactory loggerFactory)
     {
         var logger = loggerFactory.CreateLogger(typeof(McpProxyEndpoint));
 
@@ -48,9 +51,21 @@ public static class McpProxyEndpoint
             .SetTag("mcp.method", request.Method)
             .SetTag("mcp.name", request.Name);
 
+        // an agent that tripped the anomaly detector gets nothing until a reviewer resumes one of its grants
+        if (anomalies.IsBlocked(agentId))
+        {
+            var blocked = $"Agent '{agentId}' is blocked after a spike of denied calls; a reviewer must resume its grants.";
+            observations.Observe(agentId, serverId, request.Method, request.Name, blocked);
+            await WriteErrorAsync(httpContext, new(StatusCodes.Status403Forbidden, PolicyDenied, blocked, request.Id));
+            return;
+        }
+
         // fail closed: a server the gateway hasn't seen approved does not exist for agents
         if (!catalog.TryGet(serverId, out var server))
         {
+            var unknown = $"Unknown MCP server '{serverId}'.";
+            observations.Observe(agentId, serverId, request.Method, request.Name, unknown);
+            CountDenial(anomalies, anomalyQueue, agentId, serverId, request, logger);
             await WriteErrorAsync(httpContext, new(StatusCodes.Status404NotFound, PolicyDenied, $"Unknown MCP server '{serverId}'.", request.Id));
             return;
         }
@@ -68,6 +83,10 @@ public static class McpProxyEndpoint
 
         Activity.Current?.SetTag("agentgate.decision", denialReason is null ? "allow" : "deny")
             .SetTag("agentgate.manifest_hash", server.ManifestHash);
+        observations.Observe(agentId, serverId, request.Method, request.Name, denialReason);
+        // a quarantined server is not the agent's doing: only denials of what the agent asked for count
+        if (denialReason is not null && !server.Quarantined)
+            CountDenial(anomalies, anomalyQueue, agentId, serverId, request, logger);
         if (denialReason is not null)
         {
             logger.LogWarning("Denied {Method} {Name} on {ServerId} for agent {AgentId}: {Reason}",
@@ -89,6 +108,18 @@ public static class McpProxyEndpoint
         var error = await forwarder.SendAsync(httpContext, server.Url, upstreamClient, _requestConfig, _transformer);
         if (error != ForwarderError.None)
             logger.LogWarning("Forwarding {Method} to {ServerId} failed: {Error}", request.Method, serverId, error);
+    }
+
+    private static void CountDenial(DenialSpikeDetector anomalies, AnomalyQueue anomalyQueue, string agentId, string serverId,
+        McpRequest request, ILogger logger)
+    {
+        if (anomalies.RecordDenial(agentId, $"{serverId}/{request.Name ?? request.Method}") is not { } anomaly)
+            return;
+
+        logger.LogWarning("Anomaly: {AgentClientId} had {DeniedCount} calls denied within {WindowSeconds} s; blocked, suspending its grants",
+            anomaly.AgentClientId, anomaly.DeniedCount, anomaly.WindowSeconds);
+        Activity.Current?.AddEvent(new ActivityEvent("agentgate.anomaly"));
+        anomalyQueue.Report(anomaly);
     }
 
     private static async Task<byte[]?> ReadBodyAsync(HttpRequest request, CancellationToken ct)

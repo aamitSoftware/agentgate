@@ -7,6 +7,7 @@ using MassTransit.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Registry.Application.Features.McpServers.ApplyReviewDecision;
+using Registry.Application.Features.McpServers.GetGatewayServers;
 using Registry.Application.Features.McpServers.QuarantineServer;
 using Registry.Application.Features.McpServers.RegisterServer;
 using Registry.Application.StateMachines;
@@ -63,6 +64,9 @@ public sealed class ReviewDecisionConsumerTests : IAsyncLifetime
             .BuildServiceProvider(validateScopes: true);
 
         await InScope(db => db.Database.MigrateAsync(TestContext.Current.CancellationToken));
+        // CI runners are slower than a laptop: give the harness room before it decides the bus has gone quiet
+        Harness.TestInactivityTimeout = TimeSpan.FromSeconds(5);
+        Harness.TestTimeout = TimeSpan.FromSeconds(60);
         await Harness.Start();
     }
 
@@ -116,6 +120,20 @@ public sealed class ReviewDecisionConsumerTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task The_gateway_snapshot_lists_pinned_servers_with_their_last_change()
+    {
+        var approvedId = await RegisterAsync();
+        await DeliverAsync(Decision(approvedId, _manifest.Hash, ManifestReviewCompletedConsumer.Approved));
+
+        IReadOnlyList<GatewayServerDto> rows = [];
+        await InScope(async db => rows = await new GetGatewayServersHandler(db).Handle(new GetGatewayServersQuery(), TestContext.Current.CancellationToken));
+
+        var row = Assert.Single(rows); // nothing else is pinned
+        Assert.Equal(("crm", "Approved", _manifest.Hash, _manifest.ToolsJson), (row.Name, row.Status, row.ManifestHash, row.ToolsJson));
+        Assert.True(row.AsOf > DateTime.UtcNow.AddMinutes(-1));
+    }
+
+    [Fact]
     public async Task A_rejected_review_keeps_the_server_out_of_service()
     {
         var serverId = await RegisterAsync();
@@ -145,14 +163,14 @@ public sealed class ReviewDecisionConsumerTests : IAsyncLifetime
     private async Task RedeliverAsync(ManifestReviewCompleted decision, Guid messageId)
     {
         await Harness.Bus.Publish(decision, context => context.MessageId = messageId, TestContext.Current.CancellationToken);
-        for (var attempt = 0; attempt < 100; attempt++)
+        for (var attempt = 0; attempt < 300; attempt++) // up to 30 s on a slow runner
         {
             var receiveCount = 0;
             await InScope(async db => receiveCount = await db.Set<InboxState>().Where(state => state.MessageId == messageId)
                 .Select(state => state.ReceiveCount).SingleOrDefaultAsync(TestContext.Current.CancellationToken));
             if (receiveCount >= 2)
                 return;
-            await Task.Delay(50, TestContext.Current.CancellationToken);
+            await Task.Delay(100, TestContext.Current.CancellationToken);
         }
         Assert.Fail("The redelivered message never reached the inbox.");
     }

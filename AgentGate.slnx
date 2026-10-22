@@ -23,6 +23,12 @@
   <Folder Name="/src/Services/Gateway/">
     <Project Path="src/Services/Gateway/Gateway.API/Gateway.API.csproj" />
   </Folder>
+  <Folder Name="/src/Services/Hub/">
+    <Project Path="src/Services/Hub/Hub.API/Hub.API.csproj" />
+    <Project Path="src/Services/Hub/Hub.Application/Hub.Application.csproj" />
+    <Project Path="src/Services/Hub/Hub.Domain/Hub.Domain.csproj" />
+    <Project Path="src/Services/Hub/Hub.Persistence/Hub.Persistence.csproj" />
+  </Folder>
   <Folder Name="/src/Services/Registry/">
     <Project Path="src/Services/Registry/Registry.API/Registry.API.csproj" />
     <Project Path="src/Services/Registry/Registry.Application/Registry.Application.csproj" />
@@ -39,6 +45,7 @@
     <Project Path="tests/AgentGate.ArchitectureTests/AgentGate.ArchitectureTests.csproj" />
     <Project Path="tests/Blocks.EntityFrameworkCore.Tests/Blocks.EntityFrameworkCore.Tests.csproj" />
     <Project Path="tests/Gateway.Tests/Gateway.Tests.csproj" />
+    <Project Path="tests/Hub.Tests/Hub.Tests.csproj" />
     <Project Path="tests/Registry.Tests/Registry.Tests.csproj" />
     <Project Path="tests/Review.Tests/Review.Tests.csproj" />
   </Folder>

@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.JavaScript" />
     <PackageReference Include="Aspire.Hosting.Keycloak" />
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
     <PackageReference Include="Aspire.Hosting.RabbitMQ" />
@@ -16,6 +17,7 @@
     <ProjectReference Include="..\..\demo\DemoAgent\DemoAgent.csproj" />
     <ProjectReference Include="..\..\demo\DemoMcpServer\DemoMcpServer.csproj" />
     <ProjectReference Include="..\Services\Gateway\Gateway.API\Gateway.API.csproj" />
+    <ProjectReference Include="..\Services\Hub\Hub.API\Hub.API.csproj" />
     <ProjectReference Include="..\Services\Registry\Registry.API\Registry.API.csproj" />
     <ProjectReference Include="..\Services\Review\Review.API\Review.API.csproj" />
   </ItemGroup>

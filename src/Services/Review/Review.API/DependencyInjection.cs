@@ -5,7 +5,6 @@ using Blocks.AspNetCore;
 using Blocks.Core;
 using Microsoft.Extensions.Options;
 using ProtoBuf.Grpc.ClientFactory;
-using Review.API.RegistryClient;
 
 namespace Review.API;
 
@@ -16,6 +15,8 @@ public static class Policies
 
     /// <summary>Read access for anyone with a governance role.</summary>
     public const string Reader = "reader";
+
+    public const string GatewaySync = Roles.GatewaySync;
 }
 
 public static class DependencyInjection
@@ -41,7 +42,8 @@ public static class DependencyInjection
         builder.Services.AddAuthorizationBuilder()
             .AddPolicy(Policies.SecurityReviewer, policy => policy.RequireRole(Roles.SecurityReviewer))
             .AddPolicy(Policies.RegistryAdmin, policy => policy.RequireRole(Roles.RegistryAdmin))
-            .AddPolicy(Policies.Reader, policy => policy.RequireRole(Roles.Auditor, Roles.RegistryAdmin, Roles.SecurityReviewer));
+            .AddPolicy(Policies.Reader, policy => policy.RequireRole(Roles.Auditor, Roles.RegistryAdmin, Roles.SecurityReviewer))
+            .AddPolicy(Policies.GatewaySync, policy => policy.RequireRole(Roles.GatewaySync));
 
         builder.AddRegistryClient();
         return builder;
@@ -50,12 +52,8 @@ public static class DependencyInjection
     /// <summary>The one gRPC client (grpc-communication skill): authenticated as Review itself, resolved by service discovery.</summary>
     private static void AddRegistryClient(this IHostApplicationBuilder builder)
     {
-        builder.Services.AddAndValidateOptions<ServiceIdentityOptions>(builder.Configuration);
+        builder.AddServiceIdentity();
         builder.Services.AddAndValidateOptions<RegistryClientOptions>(builder.Configuration);
-        builder.Services.AddSingleton(TimeProvider.System);
-        builder.Services.AddHttpClient(ServiceTokenProvider.HttpClientName);
-        builder.Services.AddSingleton<ServiceTokenProvider>();
-        builder.Services.AddTransient<ServiceTokenHandler>();
 
         builder.Services.AddCodeFirstGrpcClient<IRegistryService>((serviceProvider, options) =>
                 options.Address = new Uri(serviceProvider.GetRequiredService<IOptions<RegistryClientOptions>>().Value.Address))

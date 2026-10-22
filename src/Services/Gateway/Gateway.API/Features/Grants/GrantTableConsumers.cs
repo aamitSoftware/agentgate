@@ -1,14 +1,17 @@
 using AgentGate.IntegrationEvents.Review;
+using Gateway.API.Features.Anomalies;
 using MassTransit;
 
 namespace Gateway.API.Features.Grants;
 
-public sealed class GrantActivatedConsumer(GrantTable grants, ILogger<GrantActivatedConsumer> logger) : IConsumer<GrantActivated>
+public sealed class GrantActivatedConsumer(GrantTable grants, DenialSpikeDetector anomalies, ILogger<GrantActivatedConsumer> logger)
+    : IConsumer<GrantActivated>
 {
     public Task Consume(ConsumeContext<GrantActivated> context)
     {
         var grant = context.Message;
         grants.Activate(grant);
+        anomalies.Lift(grant.AgentClientId, grant.OccurredOn); // a resume after an anomaly: a reviewer has looked
         logger.LogInformation("Grant {GrantId} in force: {AgentClientId} may call {Tools} on {ServerName} until {ExpiresAt}",
             grant.GrantId, grant.AgentClientId, string.Join(", ", grant.Tools), grant.ServerName, grant.ExpiresAt?.ToString("O") ?? "revoked");
         return Task.CompletedTask;

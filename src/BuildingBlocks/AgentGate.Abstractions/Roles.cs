@@ -14,4 +14,7 @@ public static class Roles
 
     /// <summary>Service-to-service: may call Registry's GetServerSnapshot (held by Review's client only).</summary>
     public const string SnapshotReader = "snapshot-reader";
+
+    /// <summary>Service-to-service: may read the state the gateway enforces, to rebuild its copy after a restart.</summary>
+    public const string GatewaySync = "gateway-sync";
 }

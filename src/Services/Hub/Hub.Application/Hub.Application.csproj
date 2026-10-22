@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\AgentGate.IntegrationEvents\AgentGate.IntegrationEvents.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Blocks.Mediator\Blocks.Mediator.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Blocks.Messaging\Blocks.Messaging.csproj" />
+    <ProjectReference Include="..\Hub.Persistence\Hub.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -56,6 +56,16 @@ public static class GrantDecisionEndpoints
             .WithTags("Grants");
 }
 
+public static class GetGatewayGrantsEndpoint
+{
+    public static void Map(this IEndpointRouteBuilder app) =>
+        app.MapGet("/internal/gateway/grants", async (ISender sender, CancellationToken cancellationToken) =>
+                TypedResults.Ok(await sender.Send(new GetGatewayGrantsQuery(), cancellationToken)))
+            .RequireAuthorization(Policies.GatewaySync)
+            .WithName("GetGatewayGrants")
+            .WithTags("Internal");
+}
+
 public static class EndpointRegistration
 {
     public static IEndpointRouteBuilder MapAllEndpoints(this IEndpointRouteBuilder app)
@@ -66,6 +76,7 @@ public static class EndpointRegistration
         GetGrantsEndpoint.Map(app);
         RequestGrantEndpoint.Map(app);
         GrantDecisionEndpoints.Map(app);
+        GetGatewayGrantsEndpoint.Map(app);
         return app;
     }
 }

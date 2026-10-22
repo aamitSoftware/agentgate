@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Read-model rows only: plain data with no behavior and no references (Hub owns no business rules). -->
+</Project>

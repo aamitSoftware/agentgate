@@ -1,0 +1,79 @@
+@import "tailwindcss";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+/*
+  One committed direction: a security operations console. Dark and dense; neutral surfaces;
+  colour is reserved for signals (status, risk, decisions) so it means something when it appears.
+*/
+@theme {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  --color-canvas: #0b0f14;
+  --color-surface: #11161d;
+  --color-raised: #161c24;
+  --color-line: #222a34;
+  --color-line-strong: #2f3946;
+  --color-ink: #e6edf3;
+  --color-ink-muted: #8b96a5;
+  --color-ink-faint: #5d6877;
+
+  --color-ok: #3fb950;
+  --color-ok-soft: #3fb95022;
+  --color-warn: #d29922;
+  --color-warn-soft: #d2992226;
+  --color-danger: #f85149;
+  --color-danger-soft: #f8514926;
+  --color-info: #58a6ff;
+  --color-info-soft: #58a6ff1f;
+  --color-accent: #f0883e;
+
+  --color-diff-add: #2ea04326;
+  --color-diff-add-ink: #7ee787;
+  --color-diff-del: #f8514926;
+  --color-diff-del-ink: #ffa198;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: #58a6ff44;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-info);
+    outline-offset: 1px;
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes arrive {
+  from {
+    background-color: #58a6ff26;
+  }
+}
+
+@utility animate-arrive {
+  animation: arrive 1.6s ease-out;
+}

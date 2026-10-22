@@ -1,6 +1,7 @@
 using AgentGate.IntegrationEvents.Registry;
 using Microsoft.Extensions.Logging;
 using Review.Application.Features.ManifestReviews.RiskScanning;
+using Contracts = AgentGate.IntegrationEvents.Review;
 
 namespace Review.Application.Features.ManifestReviews.OpenReview;
 
@@ -56,5 +57,18 @@ public sealed class ManifestSubmittedConsumer(ReviewDbContext db, ManifestReview
         await reviews.SaveChangesAsync(ct);
         logger.LogInformation("Opened review {ReviewId} of {ServerName} manifest {ManifestHash}: risk {RiskLevel}, {FindingCount} findings",
             review.Id, message.Name, message.ManifestHash, review.RiskLevel, review.Findings.Count);
+    }
+}
+
+public sealed class PublishIntegrationEventOnManifestReviewOpenedHandler(IPublishEndpoint publishEndpoint)
+    : IDomainEventHandler<ManifestReviewOpened>
+{
+    public Task HandleAsync(ManifestReviewOpened domainEvent, CancellationToken ct)
+    {
+        var review = domainEvent.Review;
+        return publishEndpoint.Publish(
+            new Contracts.ManifestReviewOpened(review.Id, review.ServerId, review.ServerName, review.ManifestHash, review.PreviousHash,
+                review.RiskLevel.ToString(), review.Findings.Count, domainEvent.Action.OccurredOn),
+            ct);
     }
 }

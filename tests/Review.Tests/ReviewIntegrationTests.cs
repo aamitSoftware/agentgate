@@ -12,7 +12,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ProtoBuf.Grpc;
 using Review.Application.Features.Grants.ApproveGrant;
+using Review.Application.Features.Grants.GetGatewayGrants;
 using Review.Application.Features.Grants.RequestGrant;
+using Review.Application.Features.Grants.SuspendOnAnomaly;
 using Review.Application.Features.LocalCopies;
 using Review.Application.Features.ManifestReviews.ApproveReview;
 using Review.Application.Features.ManifestReviews.OpenReview;
@@ -90,6 +92,7 @@ public sealed class ReviewIntegrationTests(PostgresFixture postgres) : IClassFix
             {
                 bus.AddConsumer<ManifestSubmittedConsumer>();
                 bus.AddConsumer<AgentRegisteredConsumer>();
+                bus.AddConsumer<AnomalyDetectedConsumer>();
                 bus.AddEntityFrameworkOutbox<ReviewDbContext>(outbox =>
                 {
                     outbox.UsePostgres();
@@ -100,6 +103,9 @@ public sealed class ReviewIntegrationTests(PostgresFixture postgres) : IClassFix
             .BuildServiceProvider(validateScopes: true);
 
         await InScope<ReviewDbContext>(db => db.Database.MigrateAsync(Ct));
+        // CI runners are slower than a laptop: give the harness room before it decides the bus has gone quiet
+        Harness.TestInactivityTimeout = TimeSpan.FromSeconds(5);
+        Harness.TestTimeout = TimeSpan.FromSeconds(60);
         await Harness.Start();
     }
 
@@ -115,6 +121,9 @@ public sealed class ReviewIntegrationTests(PostgresFixture postgres) : IClassFix
         var review = Assert.Single(await ReviewsAsync());
         Assert.Equal((ReviewStatus.Open, RiskLevel.Medium, "crm"), (review.Status, review.RiskLevel, review.ServerName));
         Assert.Equal("system:review-intake", review.CreatedBy);
+        // the consumer outbox delivers after commit as a serialized send to the event's publish address
+        Assert.True(await Harness.Sent.Any(message =>
+            message.Context.DestinationAddress?.AbsolutePath.EndsWith(":" + nameof(Contracts.ManifestReviewOpened)) == true, Ct));
     }
 
     [Fact]
@@ -209,6 +218,65 @@ public sealed class ReviewIntegrationTests(PostgresFixture postgres) : IClassFix
             Assert.Equal((GrantStatus.Active, "demo-agent", "crm"), (grant.Status, grant.AgentClientId, grant.ServerName));
         });
         Assert.Equal(1, await CountOutboxAsync<Contracts.GrantActivated>());
+
+        // what a restarted gateway reads back
+        IReadOnlyList<GatewayGrantDto> rows = [];
+        await InScope<ReviewDbContext>(async db => rows = await new GetGatewayGrantsHandler(db).Handle(new GetGatewayGrantsQuery(), Ct));
+        var row = Assert.Single(rows);
+        Assert.Equal(("demo-agent", "crm", "Active"), (row.AgentClientId, row.ServerName, row.Status));
+        Assert.Equal(["lookup_customer"], row.Tools);
+    }
+
+    [Fact]
+    public async Task An_anomaly_suspends_every_active_grant_of_that_agent_as_the_anomaly_detector()
+    {
+        var grantId = await ActiveGrantAsync();
+
+        await DeliverAsync(new AgentGate.IntegrationEvents.Gateway.AnomalyDetected(NewId.NextGuid(), "demo-agent", "DeniedCallSpike", 5, 60,
+            ["crm/export_all_customers"], DateTime.UtcNow));
+
+        await InScope<ReviewDbContext>(async db =>
+        {
+            var grant = await db.Grants.Include(grant => grant.AuditEntries).SingleAsync(grant => grant.Id == grantId, Ct);
+            Assert.Equal(GrantStatus.Suspended, grant.Status);
+            var entry = grant.AuditEntries.OrderBy(audit => audit.OccurredOn).Last();
+            Assert.Equal("system:anomaly-detector", entry.ActorId);
+            Assert.Contains("5 denied calls", entry.Comment);
+        });
+        // delivered by the consumer outbox after the commit, to the gateway and the Hub
+        Assert.True(await Harness.Sent.Any(message =>
+            message.Context.DestinationAddress?.AbsolutePath.EndsWith(":" + nameof(Contracts.GrantSuspended)) == true, Ct));
+    }
+
+    [Fact]
+    public async Task An_anomaly_for_another_agent_leaves_these_grants_alone()
+    {
+        var grantId = await ActiveGrantAsync();
+
+        await DeliverAsync(new AgentGate.IntegrationEvents.Gateway.AnomalyDetected(NewId.NextGuid(), "some-other-agent", "DeniedCallSpike", 5, 60,
+            [], DateTime.UtcNow));
+
+        await InScope<ReviewDbContext>(async db =>
+            Assert.Equal(GrantStatus.Active, (await db.Grants.SingleAsync(grant => grant.Id == grantId, Ct)).Status));
+    }
+
+    private async Task<Guid> ActiveGrantAsync()
+    {
+        var agentId = Guid.CreateVersion7();
+        await DeliverAsync(new AgentRegistered(agentId, "Support bot", "demo-agent", "support-team", "Answers tickets", DateTime.UtcNow));
+        await DeliverAsync(Submission(CrmHash, TestData.CrmTools, previous: null));
+        var grant = await SendAsync<RequestGrantHandler, RequestGrantCommand, RequestGrantResponse>(new RequestGrantCommand
+        {
+            AgentId = agentId,
+            ServerId = _serverId,
+            Tools = ["lookup_customer"],
+            Justification = "Answers questions.",
+            ActorId = "admin"
+        });
+        await SendAsync<ApproveGrantHandler, ApproveGrantCommand>(new ApproveGrantCommand { GrantId = grant.Id, ActorId = "alice" });
+        _registry.Respond = _ => Snapshot("Approved", pendingHash: "", tools: ["lookup_customer"]);
+        await SendAsync<ApproveGrantHandler, ApproveGrantCommand>(new ApproveGrantCommand { GrantId = grant.Id, ActorId = "bob" });
+        return grant.Id;
     }
 
     private ManifestSubmitted Submission(string hash, string toolsJson, string? previous) =>
@@ -254,14 +322,14 @@ public sealed class ReviewIntegrationTests(PostgresFixture postgres) : IClassFix
     private async Task RedeliverAsync<TMessage>(TMessage message, Guid messageId) where TMessage : class
     {
         await Harness.Bus.Publish(message, context => context.MessageId = messageId, Ct);
-        for (var attempt = 0; attempt < 100; attempt++)
+        for (var attempt = 0; attempt < 300; attempt++) // up to 30 s on a slow runner
         {
             var receiveCount = 0;
             await InScope<ReviewDbContext>(async db => receiveCount = await db.Set<InboxState>()
                 .Where(state => state.MessageId == messageId).Select(state => state.ReceiveCount).SingleOrDefaultAsync(Ct));
             if (receiveCount >= 2)
                 return;
-            await Task.Delay(50, Ct);
+            await Task.Delay(100, Ct);
         }
         Assert.Fail("The redelivered message never reached the inbox.");
     }

@@ -241,6 +241,39 @@ Each milestone is demoable. Tests and CI start at M0. Estimate: about 8 weeks pa
 - **Demo reviewers.** The scripted four-eyes demo uses two reviewer service accounts (`demo-reviewer-1`, `demo-reviewer-2`). Human reviewers sign in through the console in M4.
 - **Still deferred:** the gateway's bootstrap read after a restart. It still fails closed: no servers and no grants until events re-announce them. This belongs with M4's read models.
 
+**M4 as built** (differences from the scope above):
+- **Hub** is a read model only. It holds plain rows (servers, agents, grants, timeline, tool calls) built by consumers with the EF inbox. Each governance event is filed on the timeline of every subject it concerns, with a severity.
+- **Ordering.** A status from an older event never overwrites a newer one; this matters because queues don't preserve order across event types.
+- **SSE.** `GET /activity/stream` fans out from memory, with one bounded buffer per subscriber, so a slow browser loses rows rather than slowing the consumers. The stream opens with a heartbeat, because neither browsers nor test clients see a response until something is written, and sends another every 15 s while idle. One Hub replica only.
+- **Two new events feed the Hub.**
+  - `ToolCallObserved`: the gateway publishes it from a bounded background queue, without an outbox (ADR 0005).
+  - `ManifestReviewOpened`: Review publishes it, so the inventory shows a pending review's risk before anyone decides.
+- **Console.**
+  - `web/` holds Vite, React and TypeScript, TanStack Query and Router, and Tailwind. The shadcn-style primitives are written in the repo, because the shadcn CLI needs its registry.
+  - The `frontend-design` plugin wasn't available where M4 was built, so the design direction above was followed by hand.
+  - Sign-in is Keycloak authorization code + PKCE with `oidc-client-ts`. Roles and `sub` come from the access token, the same claims the APIs authorize on.
+  - The Vite dev server proxies `/api/{registry,review,hub}`, so the browser sees one origin and no service needs CORS.
+  - Approvals and decisions go to Review; everything else is read from the Hub.
+- **Gateway bootstrap**, deferred from M2/M3, is done.
+  - A restarted gateway reads `/internal/gateway/servers` from Registry and `/internal/gateway/grants` from Review, as its own service identity (role `gateway-sync`).
+  - Snapshot rows carry the time of their last change and go through the same overwrite-if-newer rules as events.
+- **AppHost.** Every service's endpoints are declared in `AppHost.cs` instead of machine-local launch profiles. Without them, service references resolved to nothing on a fresh clone.
+- **Not done:** a production build of the console behind a single origin (YARP or static hosting). The dev server's proxy is the only front door for now.
+
+**M5 as built** (differences from the scope above):
+- **Anomaly detector.** A sliding window per agent at the gateway, by default 5 denied calls in 60 s.
+  - Refusals because a server is quarantined don't count: that isn't the agent's doing.
+  - Crossing the threshold blocks the agent locally at once, so even its granted tools are refused. The gateway then publishes `AnomalyDetected` from an unbounded queue, retried until the broker accepts it (an anomaly must not be dropped like an observation).
+  - Review suspends every active grant of the agent as `system:anomaly-detector`.
+  - A reviewer's resume republishes `GrantActivated`, which lifts the gateway's block only if it is newer than the block.
+- **ClaudeRiskScanner** (ADR 0006) runs the heuristic scan plus `claude-opus-5-5` through the official `Anthropic` SDK.
+  - Settings: effort `high`, a JSON-schema output, and server-side fallbacks.
+  - The manifest is escaped and delimited as untrusted data.
+  - Model findings must name a real tool and quote text that is really in it, and they can only add to the heuristic verdict.
+  - It is off unless an API key is set as an Aspire secret parameter.
+- **Demo.** The DemoAgent runs setup → calls → the prompt-injected agent (blocked, suspended, resumed by a reviewer) → rug pull. The README has a 3-minute demo script.
+- **GIF.** Recorded by Playwright against the console's fixture data (`web/e2e/walkthrough.spec.ts`), not from a live system.
+
 **Out of scope for v1** (listed as v2 in the README):
 - Response inspection: instructions injected into results, and changes in tool behaviour.
 - MCP resources, prompts and subscriptions.
