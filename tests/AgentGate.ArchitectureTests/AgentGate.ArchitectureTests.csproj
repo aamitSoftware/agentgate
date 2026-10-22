@@ -17,6 +17,7 @@
     <ProjectReference Include="..\..\src\Services\Registry\Registry.Persistence\Registry.Persistence.csproj" />
     <ProjectReference Include="..\..\src\Services\Review\Review.Application\Review.Application.csproj" />
     <ProjectReference Include="..\..\src\Services\Gateway\Gateway.API\Gateway.API.csproj" />
+    <ProjectReference Include="..\..\src\Services\Hub\Hub.Application\Hub.Application.csproj" />
   </ItemGroup>
 
 </Project>
