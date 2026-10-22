@@ -1,6 +1,8 @@
+using Anthropic;
 using Blocks.EntityFrameworkCore;
 using Blocks.Mediator;
 using Blocks.Messaging;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Review.Application.Features.ManifestReviews.RiskScanning;
@@ -30,7 +32,19 @@ public static class DependencyInjection
             return status => new GrantStateMachine(status, transitions);
         });
 
-        builder.Services.AddSingleton<IRiskScanner, HeuristicRiskScanner>();
+        builder.Services.AddAndValidateOptions<ClaudeRiskScannerOptions>(builder.Configuration);
+        var claude = builder.Configuration.GetSection(nameof(ClaudeRiskScannerOptions)).Get<ClaudeRiskScannerOptions>();
+        if (claude?.Enabled == true)
+        {
+            // its own HttpClient: the default resilience handler's 30 s total timeout would cut a long model call short;
+            // the SDK retries 408/409/429/5xx itself, and the scanner bounds the whole call with TimeoutSeconds
+            builder.Services.AddSingleton(new AnthropicClient { ApiKey = claude.ApiKey!, Timeout = TimeSpan.FromSeconds(claude.TimeoutSeconds) });
+            builder.Services.AddSingleton<IRiskScanner, ClaudeRiskScanner>();
+        }
+        else
+        {
+            builder.Services.AddSingleton<IRiskScanner, HeuristicRiskScanner>();
+        }
 
         builder.AddMessaging<ReviewDbContext>("review", assembly);
         return builder;
