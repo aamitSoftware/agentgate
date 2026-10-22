@@ -136,6 +136,12 @@ dotnet run --project src/AgentGate.AppHost
 | `carol` | registry admin: registers servers and agents, requests grants |
 | `dave` | auditor, read-only |
 
+- **Sign-in fails with "connection refused" on `localhost:8080`?** Keycloak needs port 8080. On Windows, Hyper-V and WSL often reserve a port range that includes it; check with `netsh interface ipv4 show excludedportrange protocol=tcp`. Run Keycloak on another port instead:
+
+```bash
+dotnet run --project src/AgentGate.AppHost -- --KeycloakPort=18080
+```
+
 - **Optional Claude scan:** to add Claude's review of each manifest, set a key once, then restart the AppHost:
 
 ```bash
