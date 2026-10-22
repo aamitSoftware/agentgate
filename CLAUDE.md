@@ -1,6 +1,6 @@
 # AgentGate
 
-Governance control plane for AI agents' MCP tool access. Design and milestones: `docs/plan.md`. Decisions: `docs/adr/`. Patterns and templates: `.claude/skills/` — check them before adding a service, aggregate, slice, event, consumer or gRPC call.
+Governance control plane for AI agents' MCP tool access. Design and milestones: `docs/plan.md`. Decisions: `docs/adr/`. Patterns and templates: `.claude/skills/` — check them before adding a service, aggregate, slice, event, consumer or gRPC call. Console (web/) work follows `.claude/skills/console-ui` and `web/DESIGN.md`; the vendored design skills it names (impeccable, interface-design, shadcn, web-design-guidelines, react-best-practices, composition-patterns, accessibility) carry their upstream licenses in each folder.
 
 ## Layout
 - `src/BuildingBlocks/Blocks.*` — shared primitives (Domain, Core, Exceptions, EntityFrameworkCore, Mediator, AspNetCore, Messaging)
