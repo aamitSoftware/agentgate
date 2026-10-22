@@ -13,26 +13,12 @@ public static class RegisterServerEndpoint
             .WithTags("Servers");
 }
 
-public static class ApproveServerEndpoint
-{
-    public static void Map(this IEndpointRouteBuilder app) =>
-        app.MapPost("/servers/{serverId:guid}:approve",
-                async (Guid serverId, ApproveServerCommand? command, ISender sender, CancellationToken cancellationToken) =>
-                {
-                    await sender.Send((command ?? new ApproveServerCommand()) with { ServerId = serverId }, cancellationToken);
-                    return TypedResults.NoContent();
-                })
-            .RequireAuthorization(Policies.RegistryAdmin)
-            .WithName("ApproveServer")
-            .WithTags("Servers");
-}
-
 public static class EndpointRegistration
 {
     public static IEndpointRouteBuilder MapAllEndpoints(this IEndpointRouteBuilder app)
     {
         RegisterServerEndpoint.Map(app);
-        ApproveServerEndpoint.Map(app);
+        RegisterAgentEndpoint.Map(app);
         return app;
     }
 }

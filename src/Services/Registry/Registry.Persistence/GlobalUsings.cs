@@ -5,4 +5,5 @@ global using Microsoft.EntityFrameworkCore.Metadata.Builders;
 global using Blocks.Core;
 global using Blocks.EntityFrameworkCore;
 // Domain
+global using Registry.Domain.Agents;
 global using Registry.Domain.McpServers;

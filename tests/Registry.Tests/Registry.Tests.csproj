@@ -3,11 +3,12 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="protobuf-net.Grpc.ClientFactory" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\demo\DemoMcpServer\DemoMcpServer.csproj" />
-    <ProjectReference Include="..\..\src\Services\Registry\Registry.Application\Registry.Application.csproj" />
+    <ProjectReference Include="..\..\src\Services\Registry\Registry.API\Registry.API.csproj" />
   </ItemGroup>
 
 </Project>

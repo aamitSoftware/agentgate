@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using AgentGate.IntegrationEvents.Registry;
+using AgentGate.IntegrationEvents.Review;
 using DemoMcpServer;
 using Gateway.API;
 using MassTransit;
@@ -35,6 +36,7 @@ public sealed class GatewayEndToEndTests : IAsyncLifetime
         """;
 
     private static readonly Guid _crmServerId = Guid.CreateVersion7();
+    private static readonly Guid _grantId = Guid.CreateVersion7();
 
     public async ValueTask InitializeAsync()
     {
@@ -50,8 +52,31 @@ public sealed class GatewayEndToEndTests : IAsyncLifetime
             });
         });
 
-        // the gateway knows servers only from Registry's events
+        // the gateway knows servers only from Registry's events, and grants only from Review's
         await PublishAsync(new ServerApproved(_crmServerId, "crm", "http://demo-mcp-server/mcp", "sha256:pinned", PinnedToolsJson, DateTime.UtcNow));
+        await PublishAsync(new GrantActivated(_grantId, Guid.CreateVersion7(), "demo-agent", _crmServerId, "crm", ["lookup_customer"],
+            ExpiresAt: null, DateTime.UtcNow));
+    }
+
+    [Fact]
+    public async Task A_suspended_grant_denies_the_call_it_allowed()
+    {
+        using (var allowed = await PostAsync("demo-agent", "tools/call", "lookup_customer"))
+            Assert.NotEqual(HttpStatusCode.Forbidden, allowed.StatusCode);
+
+        await PublishAsync(new GrantSuspended(_grantId, "Denied-call spike.", DateTime.UtcNow));
+
+        using var denied = await PostAsync("demo-agent", "tools/call", "lookup_customer");
+        Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+        Assert.Contains("not granted", await denied.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task Another_agent_gets_nothing_from_this_agents_grant()
+    {
+        using var response = await PostAsync("other-agent", "tools/call", "lookup_customer");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
     [Fact]
@@ -91,8 +116,10 @@ public sealed class GatewayEndToEndTests : IAsyncLifetime
     private async Task PublishAsync<T>(T message) where T : class
     {
         var harness = _gateway.Services.GetTestHarness();
-        await harness.Bus.Publish(message, TestContext.Current.CancellationToken);
-        Assert.True(await harness.Consumed.Any<T>(TestContext.Current.CancellationToken), $"{typeof(T).Name} was not consumed");
+        var messageId = NewId.NextGuid();
+        await harness.Bus.Publish(message, context => context.MessageId = messageId, TestContext.Current.CancellationToken);
+        Assert.True(await harness.Consumed.Any<T>(received => received.Context.MessageId == messageId, TestContext.Current.CancellationToken),
+            $"{typeof(T).Name} was not consumed");
     }
 
     [Fact]

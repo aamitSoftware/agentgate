@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Framework-free: building-block kernel only (enforced by ArchitectureTests). -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Blocks.Domain\Blocks.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

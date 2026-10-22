@@ -17,6 +17,7 @@
     <ProjectReference Include="..\..\demo\DemoMcpServer\DemoMcpServer.csproj" />
     <ProjectReference Include="..\Services\Gateway\Gateway.API\Gateway.API.csproj" />
     <ProjectReference Include="..\Services\Registry\Registry.API\Registry.API.csproj" />
+    <ProjectReference Include="..\Services\Review\Review.API\Review.API.csproj" />
   </ItemGroup>
 
   <ItemGroup>

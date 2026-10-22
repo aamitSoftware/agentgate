@@ -14,6 +14,10 @@
       {
         "name": "auditor",
         "description": "Read-only access to the hub and audit trail"
+      },
+      {
+        "name": "snapshot-reader",
+        "description": "Service-to-service: may call Registry's GetServerSnapshot (Review only)"
       }
     ]
   },
@@ -61,10 +65,56 @@
     {
       "clientId": "agentgate-admin",
       "name": "AgentGate admin automation",
-      "description": "DEV ONLY. Service account with registry-admin, used by the demo script. The secret exists only in this local realm import.",
+      "description": "DEV ONLY. Service account with registry-admin, used by the demo script to register servers and agents and request grants. The secret exists only in this local realm import.",
       "enabled": true,
       "publicClient": false,
       "secret": "dev-only-Tq8mZ2cW4nLx7bVd3sKf9hRp",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "protocolMappers": [
+        {
+          "name": "registry-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "agentgate-registry",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "review-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "agentgate-review",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "flat-realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "roles",
+            "multivalued": "true",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "agentgate-review",
+      "name": "AgentGate Review service",
+      "description": "DEV ONLY. Review's own identity for the GetServerSnapshot gRPC call to Registry (ADR 0004). The secret exists only in this local realm import.",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "dev-only-O1XvrDrtWdbpmlYYsQUwbZzA",
       "serviceAccountsEnabled": true,
       "standardFlowEnabled": false,
       "directAccessGrantsEnabled": false,
@@ -93,6 +143,78 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "demo-reviewer-1",
+      "name": "Demo security reviewer 1",
+      "description": "DEV ONLY. A security reviewer for the scripted four-eyes demo (the console uses human sign-in from M4). The secret exists only in this local realm import.",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "dev-only-WNa39VaVAfaGDchHBojPSTG8",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "protocolMappers": [
+        {
+          "name": "review-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "agentgate-review",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "flat-realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "roles",
+            "multivalued": "true",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "demo-reviewer-2",
+      "name": "Demo security reviewer 2",
+      "description": "DEV ONLY. A security reviewer for the scripted four-eyes demo (the console uses human sign-in from M4). The secret exists only in this local realm import.",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "dev-only-gBNYzPIAYcWyB9rNjCxb5b6C",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "protocolMappers": [
+        {
+          "name": "review-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "agentgate-review",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "flat-realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "roles",
+            "multivalued": "true",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
     }
   ],
   "users": [
@@ -102,6 +224,30 @@
       "serviceAccountClientId": "agentgate-admin",
       "realmRoles": [
         "registry-admin"
+      ]
+    },
+    {
+      "username": "service-account-agentgate-review",
+      "enabled": true,
+      "serviceAccountClientId": "agentgate-review",
+      "realmRoles": [
+        "snapshot-reader"
+      ]
+    },
+    {
+      "username": "service-account-demo-reviewer-1",
+      "enabled": true,
+      "serviceAccountClientId": "demo-reviewer-1",
+      "realmRoles": [
+        "security-reviewer"
+      ]
+    },
+    {
+      "username": "service-account-demo-reviewer-2",
+      "enabled": true,
+      "serviceAccountClientId": "demo-reviewer-2",
+      "realmRoles": [
+        "security-reviewer"
       ]
     }
   ]

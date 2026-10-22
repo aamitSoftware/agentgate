@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Shared vocabulary only (roles, system actors): constants, no references. Domain projects may use it. -->
+</Project>

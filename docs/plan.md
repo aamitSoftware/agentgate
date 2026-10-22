@@ -230,6 +230,17 @@ Each milestone is demoable. Tests and CI start at M0. Estimate: about 8 weeks pa
 - The gateway's server catalog is in memory and built only from events, so a restarted gateway fails closed (unknown server → 404) until M3 adds a bootstrap read from Registry.
 - Registry applies EF migrations at startup in Development only.
 
+**M3 as built** (differences from the scope above):
+- **Server lifecycle.** `McpServer` gains `Rejected` (UnderReview / Quarantined → Reject → Rejected). `Register` and the drift quarantine both raise `ManifestSubmitted`, so Review opens a review in the same commit as the change. Discovered and Retired are still deferred.
+- **Agent aggregate.** It exists now, with `POST /agents` and `AgentRegistered`. Its `ClientId` is the Keycloak client the gateway sees as `azp`.
+- **Approval is a consumer.** `ManifestReviewCompletedConsumer` replaced the temporary approve endpoint. `Approve`/`Reject` take the reviewed hash and refuse a decision about a manifest that is no longer pending.
+- **Four-eyes on manifest reviews too**, not only on grants: Open → PartiallyApproved → Approved needs two different reviewers. One reviewer is enough to reject. A high-risk manifest needs a written reason from each approver.
+- **When gRPC is called.** Only the completing approval of a review or grant calls `GetServerSnapshot`; earlier approvals change nothing agents see. The snapshot carries both the pinned and the pending hash.
+- **Service identity for gRPC (ADR 0004).** Review calls Registry with its own client-credentials token (role `snapshot-reader`). Registry serves gRPC on a separate HTTP/2-only port.
+- **Gateway grants.** They are an in-memory local copy fed by `GrantActivated/Suspended/Revoked`, with `ExpiresAt` checked at use. `GatewayOptions.Grants` is gone.
+- **Demo reviewers.** The scripted four-eyes demo uses two reviewer service accounts (`demo-reviewer-1`, `demo-reviewer-2`). Human reviewers sign in through the console in M4.
+- **Still deferred:** the gateway's bootstrap read after a restart. It still fails closed: no servers and no grants until events re-announce them. This belongs with M4's read models.
+
 **Out of scope for v1** (listed as v2 in the README):
 - Response inspection: instructions injected into results, and changes in tool behaviour.
 - MCP resources, prompts and subscriptions.

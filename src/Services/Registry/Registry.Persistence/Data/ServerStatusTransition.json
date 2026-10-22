@@ -1,5 +1,7 @@
 [
   { "CurrentStatus": "UnderReview", "ActionType": "Approve",    "DestinationStatus": "Approved" },
+  { "CurrentStatus": "UnderReview", "ActionType": "Reject",     "DestinationStatus": "Rejected" },
   { "CurrentStatus": "Approved",    "ActionType": "Quarantine", "DestinationStatus": "Quarantined" },
-  { "CurrentStatus": "Quarantined", "ActionType": "Approve",    "DestinationStatus": "Approved" }
+  { "CurrentStatus": "Quarantined", "ActionType": "Approve",    "DestinationStatus": "Approved" },
+  { "CurrentStatus": "Quarantined", "ActionType": "Reject",     "DestinationStatus": "Rejected" }
 ]

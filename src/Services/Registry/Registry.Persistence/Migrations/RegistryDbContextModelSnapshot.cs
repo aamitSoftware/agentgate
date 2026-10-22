@@ -190,6 +190,54 @@ namespace Registry.Persistence.Migrations
                     b.ToTable("OutboxState");
                 });
 
+            modelBuilder.Entity("Registry.Domain.Agents.Agent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ClientId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime?>("LastModifiedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("Owner")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClientId")
+                        .IsUnique();
+
+                    b.ToTable("Agents");
+                });
+
             modelBuilder.Entity("Registry.Domain.McpServers.McpServer", b =>
                 {
                     b.Property<Guid>("Id")
@@ -308,6 +356,12 @@ namespace Registry.Persistence.Migrations
                         },
                         new
                         {
+                            CurrentStatus = "UnderReview",
+                            ActionType = "Reject",
+                            DestinationStatus = "Rejected"
+                        },
+                        new
+                        {
                             CurrentStatus = "Approved",
                             ActionType = "Quarantine",
                             DestinationStatus = "Quarantined"
@@ -317,6 +371,12 @@ namespace Registry.Persistence.Migrations
                             CurrentStatus = "Quarantined",
                             ActionType = "Approve",
                             DestinationStatus = "Approved"
+                        },
+                        new
+                        {
+                            CurrentStatus = "Quarantined",
+                            ActionType = "Reject",
+                            DestinationStatus = "Rejected"
                         });
                 });
 

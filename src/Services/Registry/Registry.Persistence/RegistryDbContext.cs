@@ -4,6 +4,7 @@ namespace Registry.Persistence;
 
 public sealed class RegistryDbContext(DbContextOptions<RegistryDbContext> options) : DbContext(options)
 {
+    public DbSet<Agent> Agents => Set<Agent>();
     public DbSet<McpServer> McpServers => Set<McpServer>();
     public DbSet<ServerStatusTransition> ServerStatusTransitions => Set<ServerStatusTransition>();
 

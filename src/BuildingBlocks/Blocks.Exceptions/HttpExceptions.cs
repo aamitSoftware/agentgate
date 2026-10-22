@@ -22,3 +22,7 @@ public class UnauthorizedException(string? message = null)
 
 public class ConflictException(string message, Exception? innerException = null)
     : HttpException(HttpStatusCode.Conflict, message, innerException);
+
+/// <summary>A dependency needed to decide safely is unreachable; the caller may retry later. Nothing was changed.</summary>
+public class ServiceUnavailableException(string message, Exception? innerException = null)
+    : HttpException(HttpStatusCode.ServiceUnavailable, message, innerException);

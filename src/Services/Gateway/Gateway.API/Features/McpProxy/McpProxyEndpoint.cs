@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Security.Claims;
 using System.Text.Json;
 using Gateway.API.Features.Catalog;
+using Gateway.API.Features.Grants;
 using Yarp.ReverseProxy.Forwarder;
 
 namespace Gateway.API.Features.McpProxy;

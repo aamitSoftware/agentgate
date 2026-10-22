@@ -6,6 +6,7 @@ using Blocks.Messaging;
 using Gateway.API;
 using Gateway.API.Features.McpProxy;
 using Gateway.API.Features.Catalog;
+using Gateway.API.Features.Grants;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Yarp.ReverseProxy.Forwarder;
 
@@ -26,6 +27,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 builder.Services.AddHttpForwarder();
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<GrantTable>();
 builder.Services.AddSingleton<ServerCatalog>();
 // no outbox: the gateway owns no transactional state (its local copy is rebuilt from events)
