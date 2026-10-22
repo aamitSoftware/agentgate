@@ -3,6 +3,7 @@ import { ChevronRight } from "lucide-react";
 import { useId, useState } from "react";
 import type { ActivityItem, Severity } from "@/api/types";
 import { ActorName } from "@/components/actor";
+import { InlineArrow } from "@/components/arrow";
 import { DecisionBadge, EventBadge, eventLabel, severityTone, type Tone } from "@/components/status";
 import { RelativeTime } from "@/components/time";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ function Target({ item }: { item: ActivityItem }) {
   return (
     <span className="max-w-full shrink-0 truncate" translate="no">
       <span className="font-mono text-sm">{item.agentClientId}</span>
-      <span className="text-muted-foreground"> → </span>
+      <InlineArrow />
       <span className="font-mono text-sm">
         {item.serverName}
         {item.toolName ? <span className="text-muted-foreground">/{item.toolName}</span> : <span className="text-muted-foreground"> {item.method}</span>}

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useDecideReview, useReview } from "@/api/queries";
 import type { AuditEntry, ReviewDetail, RiskFinding } from "@/api/types";
 import { ActorName } from "@/components/actor";
+import { InlineArrow } from "@/components/arrow";
 import { DecisionPanel } from "@/components/decision-panel";
 import { Hash } from "@/components/hash";
 import { MetaDot, PageBody, PageHeader } from "@/components/page-header";
@@ -250,7 +251,12 @@ function AuditTrail({ entries }: { entries: AuditEntry[] }) {
               <RelativeTime value={entry.occurredOn} className="text-xs text-muted-foreground" />
             </div>
             <span className="text-xs text-muted-foreground">
-              {entry.fromStatus ? `${humanize(entry.fromStatus)} → ` : ""}
+              {entry.fromStatus && (
+                <>
+                  {humanize(entry.fromStatus)}
+                  <InlineArrow />
+                </>
+              )}
               {humanize(entry.toStatus)} · <ActorName actorId={entry.actorId} />
             </span>
             {entry.comment && <p className="text-sm">{entry.comment}</p>}

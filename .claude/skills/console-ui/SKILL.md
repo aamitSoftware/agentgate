@@ -61,6 +61,7 @@ Every interactive element has default, hover, focus-visible, active, disabled (w
 - **Destructive means confirmed.** Irreversible governance actions go through `ConfirmDialog`; the reason is required and recorded in the audit trail.
 - **Truncate safely.** Truncated text gets `min-w-0` on its flex parent and the full value in a tooltip or an expandable row.
 - **Accessibility.** Every control is reachable and labelled; icon-only buttons have `aria-label`; live regions announce governance events, not every call; contrast ≥ 4.5:1 for text in both themes; respect `prefers-reduced-motion`.
+- **Glyphs come from the bundled font.** IBM Plex has no arrows or ⌘: use `InlineArrow` and lucide icons, never "→" or "⌘" in text, or each machine draws them in its own fallback font (and visual baselines differ between machines).
 - **Copy.** Sentence case; the product's words (manifest, pinned, grant, quarantined, four-eyes); controls name their action ("Approve and pin", "Revoke grant"); errors say what happened and what to do; numerals for counts; `…` not `...`.
 
 ## Verify

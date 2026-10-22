@@ -3,6 +3,7 @@ import {
   Activity,
   Bot,
   ChevronsUpDown,
+  Command,
   ClipboardCheck,
   Eye,
   KeyRound,
@@ -145,12 +146,14 @@ function UserMenu() {
   );
 }
 
+const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.userAgent);
+
 function SearchButton({ onOpen }: { onOpen: () => void }) {
   return (
     <Button variant="outline" className="w-full justify-start gap-2 px-2.5 text-muted-foreground" onClick={onOpen}>
       <Search data-icon="inline-start" />
       Search
-      <Kbd className="ml-auto">⌘&nbsp;K</Kbd>
+      <Kbd className="ml-auto">{isMac ? <Command aria-label="Command" /> : "Ctrl"}&nbsp;K</Kbd>
     </Button>
   );
 }
