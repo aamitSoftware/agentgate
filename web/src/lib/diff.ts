@@ -45,8 +45,10 @@ type Tool = { name: string } & Record<string, unknown>;
 
 function parseTools(toolsJson: string | null | undefined): Map<string, Tool> {
   if (!toolsJson) return new Map();
-  const tools = JSON.parse(toolsJson) as Tool[];
-  return new Map(tools.map((tool) => [tool.name, tool]));
+  const tools: unknown = JSON.parse(toolsJson);
+  if (!Array.isArray(tools) || !tools.every((tool) => typeof tool?.name === "string"))
+    throw new Error("The manifest is not a list of named tools.");
+  return new Map((tools as Tool[]).map((tool) => [tool.name, tool]));
 }
 
 /** Pretty-printed so that a diff lands on the field that changed, not on one long canonical line. */
@@ -56,7 +58,7 @@ function pretty(tool: Tool | undefined): string[] {
 
 /**
  * What an approval would change for agents, tool by tool: the pending manifest against the pinned one.
- * A new server has no pinned manifest, so every tool shows as added.
+ * A new server has no pinned manifest, so every tool shows as added. Throws if either manifest is malformed.
  */
 export function diffManifests(previousJson: string | null | undefined, currentJson: string): ToolDiff[] {
   const previous = parseTools(previousJson);

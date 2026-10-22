@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ActivityItem } from "@/api/types";
-import { deniedByAgent, mergeActivity } from "./activity";
+import { appendBounded, deniedByAgent, groupRepeats, mergeActivity } from "./activity";
 
 const call = (id: string, occurredOn: string, decision: "Allowed" | "Denied", agent = "demo-agent"): ActivityItem => ({
   id,
@@ -35,11 +35,12 @@ describe("mergeActivity", () => {
 });
 
 describe("deniedByAgent", () => {
-  it("counts only recent denials, per agent", () => {
+  it("counts denials inside the gateway's 60 s window, per agent", () => {
     const now = Date.parse("2026-10-22T10:10:00Z");
     const items = [
-      call("1", "2026-10-22T10:09:00Z", "Denied"),
-      call("2", "2026-10-22T10:08:00Z", "Denied"),
+      call("1", "2026-10-22T10:09:10Z", "Denied"),
+      call("2", "2026-10-22T10:09:20Z", "Denied"),
+      call("2b", "2026-10-22T10:08:00Z", "Denied"),
       call("3", "2026-10-22T10:09:30Z", "Allowed"),
       call("4", "2026-10-22T09:00:00Z", "Denied"),
       call("5", "2026-10-22T10:09:50Z", "Denied", "other"),
@@ -48,5 +49,28 @@ describe("deniedByAgent", () => {
       ["demo-agent", 2],
       ["other", 1],
     ]);
+  });
+});
+
+describe("groupRepeats", () => {
+  it("collapses consecutive identical calls and keeps everything else apart", () => {
+    const items = [
+      call("1", "2026-10-22T10:00:03Z", "Denied"),
+      call("2", "2026-10-22T10:00:02Z", "Denied"),
+      call("3", "2026-10-22T10:00:01Z", "Allowed"),
+      call("4", "2026-10-22T10:00:00Z", "Denied"),
+    ];
+    expect(groupRepeats(items).map((group) => [group.item.id, group.repeats])).toEqual([
+      ["1", 2],
+      ["3", 1],
+      ["4", 1],
+    ]);
+  });
+});
+
+describe("appendBounded", () => {
+  it("keeps the newest rows once the buffer is full", () => {
+    expect(appendBounded([1, 2, 3], 4, 3)).toEqual([2, 3, 4]);
+    expect(appendBounded([1], 2, 3)).toEqual([1, 2]);
   });
 });

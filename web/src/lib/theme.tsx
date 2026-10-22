@@ -42,7 +42,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Switch in one frame: without this, every element with a colour transition fades between themes.
+    const freeze = document.createElement("style");
+    freeze.textContent = "*,*::before,*::after{transition:none!important}";
+    document.head.appendChild(freeze);
     document.documentElement.classList.toggle("dark", resolved === "dark");
+    void getComputedStyle(document.body).color; // apply the new colours before transitions come back
+    const restore = requestAnimationFrame(() => freeze.remove());
+    return () => {
+      cancelAnimationFrame(restore);
+      freeze.remove();
+    };
   }, [resolved]);
 
   const setPreference = useCallback((next: ThemePreference) => {

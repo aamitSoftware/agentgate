@@ -1,24 +1,46 @@
 import type { User } from "oidc-client-ts";
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { LogIn } from "lucide-react";
+import { createContext, use, useEffect, useMemo, useState, type ReactNode } from "react";
+import { onUnauthorized } from "@/api/client";
+import { BrandMark } from "@/components/brand";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { identityOf, userManager, type Identity } from "./session";
 
+/** The realm roles the console knows (AgentGate.Abstractions Roles). */
 export const Roles = {
   RegistryAdmin: "registry-admin",
   SecurityReviewer: "security-reviewer",
   Auditor: "auditor",
 } as const;
 
+const knownRoles: string[] = Object.values(Roles);
+
 interface AuthState {
   identity: Identity;
+  /** The roles above that this user holds, for display. */
+  roles: string[];
   canReview: boolean;
   canAdminister: boolean;
+  /** Can see everything, change nothing (auditor). */
+  readOnly: boolean;
   signOut: () => void;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
 
 export function useAuth(): AuthState {
-  const state = useContext(AuthContext);
+  const state = use(AuthContext);
   if (!state) throw new Error("useAuth outside AuthProvider");
   return state;
 }
@@ -27,9 +49,16 @@ type Phase = { kind: "loading" } | { kind: "signedOut"; error?: string } | { kin
 
 const returnToKey = "agentgate.returnTo";
 
+function signIn() {
+  sessionStorage.setItem(returnToKey, window.location.pathname + window.location.search);
+  void userManager.signinRedirect();
+}
+
 /** Gates the whole console: nothing renders until there is a signed-in user (every API needs a token anyway). */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [phase, setPhase] = useState<Phase>({ kind: "loading" });
+  // The session ran out while the console was open: keep the page (and anything typed) and offer to sign in.
+  const [expired, setExpired] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,57 +83,93 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       settle(user && !user.expired ? { kind: "signedIn", user } : { kind: "signedOut" });
     })();
 
-    const onLoaded = (user: User) => settle({ kind: "signedIn", user });
+    const onLoaded = (user: User) => {
+      setExpired(false);
+      settle({ kind: "signedIn", user });
+    };
     const onUnloaded = () => settle({ kind: "signedOut" });
+    const onRenewFailed = () => setExpired(true);
     userManager.events.addUserLoaded(onLoaded);
     userManager.events.addUserUnloaded(onUnloaded);
-    userManager.events.addSilentRenewError(onUnloaded);
+    userManager.events.addSilentRenewError(onRenewFailed);
+    const stopListening = onUnauthorized(onRenewFailed);
     return () => {
       cancelled = true;
       userManager.events.removeUserLoaded(onLoaded);
       userManager.events.removeUserUnloaded(onUnloaded);
-      userManager.events.removeSilentRenewError(onUnloaded);
+      userManager.events.removeSilentRenewError(onRenewFailed);
+      stopListening();
     };
   }, []);
 
   const state = useMemo<AuthState | null>(() => {
     if (phase.kind !== "signedIn") return null;
     const identity = identityOf(phase.user);
+    const canReview = identity.roles.includes(Roles.SecurityReviewer);
+    const canAdminister = identity.roles.includes(Roles.RegistryAdmin);
     return {
       identity,
-      canReview: identity.roles.includes(Roles.SecurityReviewer),
-      canAdminister: identity.roles.includes(Roles.RegistryAdmin),
+      roles: identity.roles.filter((role) => knownRoles.includes(role)),
+      canReview,
+      canAdminister,
+      readOnly: !canReview && !canAdminister,
       signOut: () => void userManager.signoutRedirect(),
     };
   }, [phase]);
 
-  if (phase.kind === "loading") return null;
-  if (!state) return <SignIn error={phase.kind === "signedOut" ? phase.error : undefined} />;
-  return <AuthContext.Provider value={state}>{children}</AuthContext.Provider>;
+  if (phase.kind === "loading") return <SignInFrame busy />;
+  if (!state) return <SignInFrame error={phase.kind === "signedOut" ? phase.error : undefined} />;
+  return (
+    <AuthContext value={state}>
+      {children}
+      <SessionExpired open={expired} />
+    </AuthContext>
+  );
 }
 
-function SignIn({ error }: { error?: string }) {
-  const signIn = () => {
-    sessionStorage.setItem(returnToKey, window.location.pathname + window.location.search);
-    void userManager.signinRedirect();
-  };
+function SignInFrame({ busy, error }: { busy?: boolean; error?: string }) {
   return (
-    <main className="grid h-full place-items-center bg-canvas">
-      <div className="w-[22rem] rounded-md border border-line bg-surface p-6">
-        <div className="mb-1 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-faint">
-          <span className="size-1.5 rounded-full bg-accent" />
-          AgentGate
+    <main className="grid min-h-svh place-items-center bg-background p-4">
+      <div className="flex w-full max-w-sm flex-col gap-6 rounded-lg border bg-card p-6">
+        <div className="flex items-center gap-2.5">
+          <BrandMark />
+          <span className="text-lg font-semibold tracking-tight">AgentGate</span>
         </div>
-        <h1 className="mb-1 text-lg font-semibold">Governance console</h1>
-        <p className="mb-5 text-ink-muted">MCP servers, reviews, grants and live agent activity. Sign in with your realm account.</p>
-        {error && <p className="mb-4 rounded border border-danger/40 bg-danger-soft px-3 py-2 text-danger">{error}</p>}
-        <button
-          onClick={signIn}
-          className="w-full rounded border border-line-strong bg-raised px-3 py-2 font-medium hover:border-ink-faint hover:bg-line"
-        >
-          Sign in with Keycloak
-        </button>
+        <div className="flex flex-col gap-1.5">
+          <h1 className="text-xl font-semibold tracking-tight">Sign in to the governance console</h1>
+          <p className="text-muted-foreground">
+            Review MCP servers and agent grants, and watch what agents do at the gateway. Use your realm account.
+          </p>
+        </div>
+        {error && (
+          <Alert variant="destructive">
+            <AlertTitle>Sign-in did not complete</AlertTitle>
+            <AlertDescription>{error} Try again; if it keeps failing, check that Keycloak is running.</AlertDescription>
+          </Alert>
+        )}
+        <Button size="lg" onClick={signIn} disabled={busy}>
+          {busy ? <Spinner data-icon="inline-start" /> : <LogIn data-icon="inline-start" />}
+          {busy ? "Checking your session…" : "Sign in with Keycloak"}
+        </Button>
       </div>
     </main>
+  );
+}
+
+function SessionExpired({ open }: { open: boolean }) {
+  return (
+    <AlertDialog open={open}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Your session has expired</AlertDialogTitle>
+          <AlertDialogDescription>
+            Sign in again to keep working. You will come back to this page; anything not yet submitted on it is lost.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogAction onClick={signIn}>Sign in again</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

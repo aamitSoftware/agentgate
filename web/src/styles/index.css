@@ -149,23 +149,6 @@
 
   --shadow-overlay: var(--overlay-shadow);
 
-  /* Legacy names used by screens not yet rebuilt on the new components; removed with components/legacy-ui. */
-  --color-canvas: var(--background);
-  --color-surface: var(--card);
-  --color-raised: var(--muted);
-  --color-line: var(--border);
-  --color-line-strong: var(--input);
-  --color-ink: var(--foreground);
-  --color-ink-muted: var(--muted-foreground);
-  --color-ink-faint: var(--muted-foreground);
-  --color-ok: var(--success);
-  --color-ok-soft: var(--success-subtle);
-  --color-warn: var(--warning);
-  --color-warn-soft: var(--warning-subtle);
-  --color-danger-soft: var(--danger-subtle);
-  --color-info-soft: var(--info-subtle);
-  --color-diff-add-ink: var(--success);
-  --color-diff-del-ink: var(--danger);
 }
 
 @layer base {
@@ -173,10 +156,9 @@
     @apply border-border outline-ring/50;
   }
 
-  html,
   body,
   #root {
-    height: 100%;
+    min-height: 100svh;
   }
 
   body {

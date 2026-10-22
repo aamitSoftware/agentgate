@@ -109,17 +109,33 @@ const grantRequest = {
   status: "PendingApproval", firstApproverId: bob, createdOn: minutesAgo(9), auditEntries: [],
 };
 
+const decidedReview = {
+  ...reviewSummary, id: "0199f3a9-7777-7d8e-9f01-23456789abcd", manifestHash: pinned, previousHash: null, riskLevel: "Medium", findingCount: 1,
+  status: "Approved", firstApproverId: me.sub, createdOn: minutesAgo(12),
+};
+const reviewGrant = { ...grant, justification: "Answers customer questions.", firstApproverId: bob, createdOn: minutesAgo(7), auditEntries: [] };
+const suspendedGrant = {
+  ...reviewGrant, id: "0199f3b0-7777-7d8e-9f01-23456789abcd", agentId: agents[1]!.id, agentClientId: "support-bot-2", serverId: servers[1]!.id,
+  serverName: "tickets", tools: ["list_tickets"], status: "Suspended", createdOn: minutesAgo(30),
+};
+
 function jwt(claims: Record<string, unknown>) {
   const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString("base64url");
   return `${encode({ alg: "none" })}.${encode(claims)}.`;
 }
 
-/** Signs in as alice (security reviewer) and serves the story from route handlers. */
-export async function signInWithFixtures(page: Page) {
-  const accessToken = jwt({ sub: me.sub, preferred_username: me.username, roles: ["security-reviewer", "registry-admin"] });
+const accounts = {
+  alice: { sub: me.sub, username: "alice", roles: ["security-reviewer", "registry-admin"] },
+  dave: { sub: "d4ve0000-1111-4222-8333-944445555666", username: "dave", roles: ["auditor"] },
+};
+
+/** Signs in (alice, a reviewer and admin, by default; dave is an auditor) and serves the story from route handlers. */
+export async function signInWithFixtures(page: Page, as: keyof typeof accounts = "alice") {
+  const account = accounts[as];
+  const accessToken = jwt({ sub: account.sub, preferred_username: account.username, roles: account.roles });
   const user = {
     access_token: accessToken, token_type: "Bearer", scope: "openid profile", expires_at: Math.floor(Date.now() / 1000) + 3600,
-    profile: { sub: me.sub, preferred_username: me.username, iss: "http://localhost:8080/realms/agentgate", aud: "agentgate-console", exp: 0, iat: 0 },
+    profile: { sub: account.sub, preferred_username: account.username, iss: "http://localhost:8080/realms/agentgate", aud: "agentgate-console", exp: 0, iat: 0 },
   };
   await page.addInitScript(
     ({ key, value }) => window.sessionStorage.setItem(key, value),
@@ -151,6 +167,8 @@ export async function signInWithFixtures(page: Page) {
   );
   await page.route("**/api/review/reviews?status=PartiallyApproved", (route) => route.fulfill(json([reviewSummary])));
   await page.route(`**/api/review/reviews/${reviewId}`, (route) => route.fulfill(json(review)));
+  await page.route("**/api/review/reviews", (route) => route.fulfill(json([reviewSummary, decidedReview])));
+  await page.route("**/api/review/grants", (route) => route.fulfill(json([grantRequest, reviewGrant, suspendedGrant])));
   await page.route("**/api/review/grants?status=Requested", (route) => route.fulfill(json([])));
   await page.route("**/api/review/grants?status=PendingApproval", (route) => route.fulfill(json([grantRequest])));
   return { serverId, agentId, reviewId };

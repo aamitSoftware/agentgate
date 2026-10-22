@@ -1,4 +1,5 @@
 import { getAccessToken } from "@/auth/session";
+import { reportUnauthorized } from "./client";
 import type { ActivityItem } from "./types";
 
 export interface SseEvent {
@@ -39,11 +40,32 @@ export class SseParser {
   }
 }
 
-export type StreamState = "connecting" | "live" | "retrying";
+export type StreamState = "connecting" | "live" | "retrying" | "unauthorized";
+
+/** Only rows shaped like the Hub's ActivityItem get through; anything else is dropped, not trusted. */
+export function parseActivity(data: string): ActivityItem | null {
+  try {
+    const value = JSON.parse(data) as Partial<ActivityItem> | null;
+    if (!value || typeof value.id !== "string" || typeof value.occurredOn !== "string" || (value.kind !== "call" && value.kind !== "event"))
+      return null;
+    return value as ActivityItem;
+  } catch {
+    return null;
+  }
+}
+
+/** Resolves after `ms`, or as soon as `signal` aborts. */
+function pause(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(resolve, ms);
+    signal.addEventListener("abort", () => (clearTimeout(timer), resolve()), { once: true });
+  });
+}
 
 /**
  * Follows the Hub's live activity with fetch (EventSource cannot send a bearer token) and reconnects with
- * backoff until <paramref name="signal"/> aborts. Rows may repeat across a reconnect; callers de-duplicate by id.
+ * backoff until `signal` aborts. Rows that happen while disconnected are missed (the Hub has no replay yet);
+ * callers refetch the snapshot when they mount. A 401 ends the stream: the session is gone, not the network.
  */
 export async function followActivity(
   onItem: (item: ActivityItem) => void,
@@ -55,27 +77,41 @@ export async function followActivity(
     onState(attempt === 0 ? "connecting" : "retrying");
     try {
       const token = await getAccessToken();
+      if (!token) {
+        reportUnauthorized();
+        return onState("unauthorized");
+      }
       const response = await fetch("/api/hub/activity/stream", {
-        headers: { Accept: "text/event-stream", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: { Accept: "text/event-stream", Authorization: `Bearer ${token}` },
         signal,
       });
+      if (response.status === 401) {
+        reportUnauthorized();
+        return onState("unauthorized");
+      }
       if (!response.ok || !response.body) throw new Error(`stream ${response.status}`);
 
       const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
       const parser = new SseParser();
-      onState("live"); // the Hub opens every stream with a heartbeat, so headers arrive at once
-      attempt = 0;
-      for (;;) {
+      for (let first = true; ; first = false) {
         const { value, done } = await reader.read();
         if (done) break;
-        for (const event of parser.push(value))
-          if (event.event === "activity" && event.data) onItem(JSON.parse(event.data) as ActivityItem);
+        if (first) {
+          onState("live"); // bytes arrived: the Hub opens every stream with a heartbeat
+          attempt = 0;
+        }
+        for (const event of parser.push(value)) {
+          if (event.event !== "activity" || !event.data) continue;
+          const item = parseActivity(event.data);
+          if (item) onItem(item);
+          else console.warn("skipped a malformed activity event", event.data);
+        }
       }
     } catch (error) {
       if (signal.aborted) return;
       console.warn("activity stream dropped", error);
     }
     attempt++;
-    await new Promise((resolve) => setTimeout(resolve, Math.min(15_000, 500 * 2 ** attempt)));
+    await pause(Math.min(15_000, 500 * 2 ** attempt), signal);
   }
 }

@@ -1,76 +1,110 @@
 import { Link, useParams } from "@tanstack/react-router";
-import { ChevronRight } from "lucide-react";
+import { ArrowRight, ChevronRight } from "lucide-react";
 import { useServer } from "@/api/queries";
-import { ActivityRow, Timeline } from "@/components/activity";
 import { GrantTable } from "@/components/grants";
-import { PageHeader } from "@/components/shell";
-import { Empty, Failure, Mono, RiskBadge, ServerStatusBadge } from "@/components/signals";
-import { Panel } from "@/components/legacy-ui/panel";
-import { timeAgo } from "@/lib/format";
+import { Hash } from "@/components/hash";
+import { MetaDot, PageBody, PageHeader } from "@/components/page-header";
+import { ErrorState, Message, SkeletonRows } from "@/components/query-state";
+import { Section } from "@/components/section";
+import { RiskBadge, ServerStatusBadge } from "@/components/status";
+import { RecentCalls, TimelineSection } from "@/components/subject";
+import { RelativeTime } from "@/components/time";
+import { Button } from "@/components/ui/button";
+import { humanize } from "@/lib/words";
 
 export function ServerPage() {
   const { serverId } = useParams({ from: "/servers/$serverId" });
   const server = useServer(serverId);
-  if (server.error) return <Failure error={server.error} />;
-  if (!server.data) return null;
-  const { summary, pinnedTools, grants, timeline, recentCalls } = server.data;
+  const crumbs = [{ label: "Servers", to: "/servers" as const }];
 
+  if (server.isPending)
+    return (
+      <>
+        <PageHeader crumbs={crumbs} title="Server" />
+        <PageBody>
+          <SkeletonRows rows={6} />
+        </PageBody>
+      </>
+    );
+  if (server.isError)
+    return (
+      <>
+        <PageHeader crumbs={crumbs} title="Server" />
+        <PageBody>
+          <ErrorState error={server.error} retry={() => void server.refetch()} back={{ label: "Back to servers", to: "/servers" }} />
+        </PageBody>
+      </>
+    );
+
+  const { summary, pinnedTools, grants, timeline, recentCalls } = server.data;
   return (
     <>
       <PageHeader
-        title={
-          <span className="flex items-center gap-2">
-            <Link to="/inventory" className="text-ink-muted hover:text-ink">
-              Inventory
-            </Link>
-            <ChevronRight size={14} className="text-ink-faint" />
-            <span className="font-mono">{summary.name}</span>
-            <ServerStatusBadge status={summary.status} />
-          </span>
+        crumbs={crumbs}
+        title={<span className="font-mono">{summary.name}</span>}
+        badges={<ServerStatusBadge status={summary.status} />}
+        meta={
+          <>
+            <span className="truncate font-mono">{summary.url ?? "URL recorded once approved"}</span>
+            <MetaDot />
+            <span className="inline-flex items-center gap-1.5">
+              Pinned <Hash value={summary.pinnedHash} />
+              {summary.pendingHash && (
+                <>
+                  <ArrowRight aria-label="pending" className="size-3.5" />
+                  <Hash value={summary.pendingHash} copy={false} />
+                </>
+              )}
+            </span>
+            <MetaDot />
+            <span>
+              {humanize(summary.status)} <RelativeTime value={summary.statusAsOf} />
+            </span>
+          </>
         }
-        subtitle={
-          <span>
-            {summary.url ?? "no URL yet"} · pinned <Mono value={summary.pinnedHash} /> · {summary.status.toLowerCase()} {timeAgo(summary.statusAsOf)}
-          </span>
+        actions={
+          summary.openReviewId &&
+          summary.openReviewRisk && (
+            <Button variant="outline" asChild>
+              <Link to="/approvals/reviews/$reviewId" params={{ reviewId: summary.openReviewId }}>
+                Open review <RiskBadge risk={summary.openReviewRisk} />
+                <ChevronRight data-icon="inline-end" />
+              </Link>
+            </Button>
+          )
         }
-      >
-        {summary.openReviewId && (
-          <Link
-            to="/approvals/reviews/$reviewId"
-            params={{ reviewId: summary.openReviewId }}
-            className="flex items-center gap-2 rounded border border-warn/40 bg-warn-soft px-3 py-1.5 text-warn hover:border-warn"
-          >
-            Open review <RiskBadge risk={summary.openReviewRisk} /> <ChevronRight size={14} />
-          </Link>
-        )}
-      </PageHeader>
-      <div className="grid grid-cols-[minmax(0,1fr)_24rem] gap-4 p-5 max-xl:grid-cols-1">
-        <div className="min-w-0 space-y-4">
-          <Panel title={`Pinned tools · what agents are shown`}>
+      />
+      <PageBody className="xl:grid xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-start">
+        <div className="flex min-w-0 flex-col gap-6">
+          <Section title="Pinned tools" description="Exactly what agents are shown: the manifest approved by two reviewers.">
             {!pinnedTools?.length ? (
-              <Empty>Nothing pinned: no manifest of this server has been approved yet.</Empty>
+              <Message title="Nothing pinned yet">Agents see no tools from this server until a manifest is approved.</Message>
             ) : (
-              <ul>
+              <dl className="divide-y">
                 {pinnedTools.map((tool) => (
-                  <li key={tool.name} className="border-b border-line/70 px-3 py-2 last:border-b-0">
-                    <div className="font-mono text-[12px] font-medium">{tool.name}</div>
-                    <p className="text-ink-muted">{tool.description ?? <span className="text-ink-faint">no description</span>}</p>
-                  </li>
+                  <div key={tool.name} className="flex flex-col gap-1 px-4 py-3">
+                    <dt className="font-mono text-sm font-medium" translate="no">
+                      {tool.name}
+                    </dt>
+                    <dd className="text-sm text-muted-foreground">{tool.description ?? "No description."}</dd>
+                  </div>
                 ))}
-              </ul>
+              </dl>
             )}
-          </Panel>
-          <Panel title="Grants">
-            <GrantTable grants={grants} show="agent" />
-          </Panel>
-          <Panel title="Recent calls">
-            {recentCalls.length === 0 ? <Empty>No calls observed.</Empty> : recentCalls.map((item) => <ActivityRow key={item.id} item={item} />)}
-          </Panel>
+          </Section>
+          <Section title="Grants" description="Agents allowed to call this server's tools.">
+            {grants.length === 0 ? (
+              <Message title="No grants">No agent may call this server. Admins request grants from the Grants page.</Message>
+            ) : (
+              <GrantTable grants={grants} show="agent" />
+            )}
+          </Section>
+          <RecentCalls calls={recentCalls} />
         </div>
-        <Panel title="Timeline">
-          <Timeline items={timeline} />
-        </Panel>
-      </div>
+        <div className="xl:sticky xl:top-6">
+          <TimelineSection items={timeline} what="server" />
+        </div>
+      </PageBody>
     </>
   );
 }
