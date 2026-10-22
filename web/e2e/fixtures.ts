@@ -2,8 +2,10 @@ import type { Page } from "@playwright/test";
 
 // The rug-pull story, as the Hub and Review would serve it a few minutes after the demo ran.
 
-const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
-const secondsAgo = (seconds: number) => new Date(Date.now() - seconds * 1_000).toISOString();
+/** The moment the story is set at. Tests that compare pixels freeze the browser's clock here (page.clock). */
+export const fixtureNow = Date.now();
+const minutesAgo = (minutes: number) => new Date(fixtureNow - minutes * 60_000).toISOString();
+const secondsAgo = (seconds: number) => new Date(fixtureNow - seconds * 1_000).toISOString();
 
 export const me = { sub: "6c1f9d2e-3b7a-4f10-9a2e-1d5c8b7e4a01", username: "alice" };
 const bob = "a93e0c47-5d21-4c8e-b6f4-0e2d9c71b8f3";
@@ -76,7 +78,7 @@ const servers = [
     pinnedHash: null, toolCount: 0, pendingHash: "7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b", openReviewId: "0199f3a9-8888-7d8e-9f01-23456789abcd", openReviewRisk: "Medium", lastReviewRisk: null, activeGrantCount: 0 },
 ];
 const grant = { id: "0199f3b0-5555-7d8e-9f01-23456789abcd", agentId, agentClientId: "demo-agent", serverId, serverName: "crm", tools: ["lookup_customer"],
-  expiresAt: new Date(Date.now() + 30 * 86_400_000).toISOString(), status: "Active", statusAsOf: minutesAgo(6) };
+  expiresAt: new Date(fixtureNow + 30 * 86_400_000).toISOString(), status: "Active", statusAsOf: minutesAgo(6) };
 const agents = [
   { id: agentId, name: "Support bot", clientId: "demo-agent", owner: "support-team", purpose: "Answers customer questions from the CRM", registeredOn: minutesAgo(13), activeGrantCount: 1, deniedLastHour: 2 },
   { id: "0199f3a1-2222-7d8e-9f01-23456789abcd", name: "Support bot (canary)", clientId: "support-bot-2", owner: "support-team", purpose: "Canary of the next support bot release", registeredOn: minutesAgo(30), activeGrantCount: 0, deniedLastHour: 6 },
@@ -105,7 +107,7 @@ const review = {
 };
 const grantRequest = {
   id: "0199f3b0-6666-7d8e-9f01-23456789abcd", agentId: agents[1]!.id, agentClientId: "support-bot-2", serverId: servers[1]!.id, serverName: "tickets",
-  tools: ["create_ticket", "list_tickets"], expiresAt: new Date(Date.now() + 7 * 86_400_000).toISOString(), justification: "Canary needs to file tickets for escalations.",
+  tools: ["create_ticket", "list_tickets"], expiresAt: new Date(fixtureNow + 7 * 86_400_000).toISOString(), justification: "Canary needs to file tickets for escalations.",
   status: "PendingApproval", firstApproverId: bob, createdOn: minutesAgo(9), auditEntries: [],
 };
 
