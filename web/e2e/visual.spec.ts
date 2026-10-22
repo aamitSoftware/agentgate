@@ -27,7 +27,9 @@ for (const scheme of ["light", "dark"] as const) {
         fullPage: true,
         animations: "disabled",
         mask: [page.locator("time")],
-        maxDiffPixelRatio: 0.01,
+        // CI's runner rasterises text slightly differently from a developer machine (about 1.5% of pixels on the
+        // text-heaviest page); a moved panel or a changed colour changes far more than 3%.
+        maxDiffPixelRatio: 0.03,
       });
     }
   });
