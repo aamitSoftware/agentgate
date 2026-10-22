@@ -25,7 +25,20 @@ jobs:
       - run: dotnet format --no-restore --verify-no-changes
 
       # ubuntu runners ship Docker, so Testcontainers-based integration tests (M2+) run here too
-      - run: dotnet test --no-build --configuration Release
+      - name: dotnet test
+        shell: bash
+        run: |
+          set -o pipefail
+          dotnet test --no-build --configuration Release 2>&1 | tee test-output.txt
+
+      # failing tests as annotations: readable from the checks API and the PR without opening the log
+      - if: failure()
+        shell: bash
+        run: |
+          awk '/^ *failed /{ if (block) print block; block=$0; n=8; next }
+               n > 0 { block = block "%0A" $0; n--; next }
+               END { if (block) print block }' test-output.txt |
+            while IFS= read -r failure; do echo "::error title=Test failed::${failure}"; done
 
   console:
     runs-on: ubuntu-latest

@@ -65,6 +65,8 @@ public sealed class HubApiTests : IAsyncLifetime
             });
         });
         _hub.CreateClient(); // starts the host: migrations run, the bus starts
+        Harness.TestInactivityTimeout = TimeSpan.FromSeconds(5); // CI runners are slower than a laptop
+        Harness.TestTimeout = TimeSpan.FromSeconds(60);
     }
 
     [Fact]
@@ -121,7 +123,7 @@ public sealed class HubApiTests : IAsyncLifetime
             "Tool 'export_all_customers' is not granted to this agent.", null, DateTime.UtcNow), Ct);
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(Ct);
-        timeout.CancelAfter(TimeSpan.FromSeconds(10));
+        timeout.CancelAfter(TimeSpan.FromSeconds(30));
         // skip heartbeats (the first one opens the stream) until the activity event's data line
         string? line, eventType = null;
         while ((line = await reader.ReadLineAsync(timeout.Token)) is not null)

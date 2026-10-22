@@ -103,6 +103,9 @@ public sealed class ReviewIntegrationTests(PostgresFixture postgres) : IClassFix
             .BuildServiceProvider(validateScopes: true);
 
         await InScope<ReviewDbContext>(db => db.Database.MigrateAsync(Ct));
+        // CI runners are slower than a laptop: give the harness room before it decides the bus has gone quiet
+        Harness.TestInactivityTimeout = TimeSpan.FromSeconds(5);
+        Harness.TestTimeout = TimeSpan.FromSeconds(60);
         await Harness.Start();
     }
 
@@ -319,14 +322,14 @@ public sealed class ReviewIntegrationTests(PostgresFixture postgres) : IClassFix
     private async Task RedeliverAsync<TMessage>(TMessage message, Guid messageId) where TMessage : class
     {
         await Harness.Bus.Publish(message, context => context.MessageId = messageId, Ct);
-        for (var attempt = 0; attempt < 100; attempt++)
+        for (var attempt = 0; attempt < 300; attempt++) // up to 30 s on a slow runner
         {
             var receiveCount = 0;
             await InScope<ReviewDbContext>(async db => receiveCount = await db.Set<InboxState>()
                 .Where(state => state.MessageId == messageId).Select(state => state.ReceiveCount).SingleOrDefaultAsync(Ct));
             if (receiveCount >= 2)
                 return;
-            await Task.Delay(50, Ct);
+            await Task.Delay(100, Ct);
         }
         Assert.Fail("The redelivered message never reached the inbox.");
     }

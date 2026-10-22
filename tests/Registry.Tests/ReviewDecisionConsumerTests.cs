@@ -64,6 +64,9 @@ public sealed class ReviewDecisionConsumerTests : IAsyncLifetime
             .BuildServiceProvider(validateScopes: true);
 
         await InScope(db => db.Database.MigrateAsync(TestContext.Current.CancellationToken));
+        // CI runners are slower than a laptop: give the harness room before it decides the bus has gone quiet
+        Harness.TestInactivityTimeout = TimeSpan.FromSeconds(5);
+        Harness.TestTimeout = TimeSpan.FromSeconds(60);
         await Harness.Start();
     }
 
@@ -160,14 +163,14 @@ public sealed class ReviewDecisionConsumerTests : IAsyncLifetime
     private async Task RedeliverAsync(ManifestReviewCompleted decision, Guid messageId)
     {
         await Harness.Bus.Publish(decision, context => context.MessageId = messageId, TestContext.Current.CancellationToken);
-        for (var attempt = 0; attempt < 100; attempt++)
+        for (var attempt = 0; attempt < 300; attempt++) // up to 30 s on a slow runner
         {
             var receiveCount = 0;
             await InScope(async db => receiveCount = await db.Set<InboxState>().Where(state => state.MessageId == messageId)
                 .Select(state => state.ReceiveCount).SingleOrDefaultAsync(TestContext.Current.CancellationToken));
             if (receiveCount >= 2)
                 return;
-            await Task.Delay(50, TestContext.Current.CancellationToken);
+            await Task.Delay(100, TestContext.Current.CancellationToken);
         }
         Assert.Fail("The redelivered message never reached the inbox.");
     }

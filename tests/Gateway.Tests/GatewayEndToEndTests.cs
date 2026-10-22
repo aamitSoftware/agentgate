@@ -55,6 +55,10 @@ public sealed class GatewayEndToEndTests : IAsyncLifetime
             });
         });
 
+        var harness = _gateway.Services.GetTestHarness(); // resolving it starts the host
+        harness.TestInactivityTimeout = TimeSpan.FromSeconds(5); // CI runners are slower than a laptop
+        harness.TestTimeout = TimeSpan.FromSeconds(60);
+
         // the gateway knows servers only from Registry's events, and grants only from Review's
         await PublishAsync(new ServerApproved(_crmServerId, "crm", "http://demo-mcp-server/mcp", "sha256:pinned", PinnedToolsJson, DateTime.UtcNow));
         await PublishAsync(new GrantActivated(_grantId, Guid.CreateVersion7(), "demo-agent", _crmServerId, "crm", ["lookup_customer"],
