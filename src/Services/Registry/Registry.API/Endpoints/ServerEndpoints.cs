@@ -13,12 +13,23 @@ public static class RegisterServerEndpoint
             .WithTags("Servers");
 }
 
+public static class GetGatewayServersEndpoint
+{
+    public static void Map(this IEndpointRouteBuilder app) =>
+        app.MapGet("/internal/gateway/servers", async (ISender sender, CancellationToken cancellationToken) =>
+                TypedResults.Ok(await sender.Send(new GetGatewayServersQuery(), cancellationToken)))
+            .RequireAuthorization(Policies.GatewaySync)
+            .WithName("GetGatewayServers")
+            .WithTags("Internal");
+}
+
 public static class EndpointRegistration
 {
     public static IEndpointRouteBuilder MapAllEndpoints(this IEndpointRouteBuilder app)
     {
         RegisterServerEndpoint.Map(app);
         RegisterAgentEndpoint.Map(app);
+        GetGatewayServersEndpoint.Map(app);
         return app;
     }
 }

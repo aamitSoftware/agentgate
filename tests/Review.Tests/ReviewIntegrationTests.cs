@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ProtoBuf.Grpc;
 using Review.Application.Features.Grants.ApproveGrant;
+using Review.Application.Features.Grants.GetGatewayGrants;
 using Review.Application.Features.Grants.RequestGrant;
 using Review.Application.Features.LocalCopies;
 using Review.Application.Features.ManifestReviews.ApproveReview;
@@ -115,6 +116,9 @@ public sealed class ReviewIntegrationTests(PostgresFixture postgres) : IClassFix
         var review = Assert.Single(await ReviewsAsync());
         Assert.Equal((ReviewStatus.Open, RiskLevel.Medium, "crm"), (review.Status, review.RiskLevel, review.ServerName));
         Assert.Equal("system:review-intake", review.CreatedBy);
+        // the consumer outbox delivers after commit as a serialized send to the event's publish address
+        Assert.True(await Harness.Sent.Any(message =>
+            message.Context.DestinationAddress?.AbsolutePath.EndsWith(":" + nameof(Contracts.ManifestReviewOpened)) == true, Ct));
     }
 
     [Fact]
@@ -209,6 +213,13 @@ public sealed class ReviewIntegrationTests(PostgresFixture postgres) : IClassFix
             Assert.Equal((GrantStatus.Active, "demo-agent", "crm"), (grant.Status, grant.AgentClientId, grant.ServerName));
         });
         Assert.Equal(1, await CountOutboxAsync<Contracts.GrantActivated>());
+
+        // what a restarted gateway reads back
+        IReadOnlyList<GatewayGrantDto> rows = [];
+        await InScope<ReviewDbContext>(async db => rows = await new GetGatewayGrantsHandler(db).Handle(new GetGatewayGrantsQuery(), Ct));
+        var row = Assert.Single(rows);
+        Assert.Equal(("demo-agent", "crm", "Active"), (row.AgentClientId, row.ServerName, row.Status));
+        Assert.Equal(["lookup_customer"], row.Tools);
     }
 
     private ManifestSubmitted Submission(string hash, string toolsJson, string? previous) =>

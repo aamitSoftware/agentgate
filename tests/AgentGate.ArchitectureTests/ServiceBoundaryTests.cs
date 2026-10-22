@@ -17,16 +17,28 @@ public class ServiceBoundaryTests
     public void Services_never_reference_each_other() =>
         Assert.All(
             [
-                (typeof(Registry.Application.DependencyInjection).Assembly, new[] { "Review.", "Gateway." }),
-                (typeof(Review.Application.DependencyInjection).Assembly, new[] { "Registry.", "Gateway." }),
-                (typeof(Gateway.API.GatewayOptions).Assembly, new[] { "Registry.", "Review." })
+                (typeof(Registry.Application.DependencyInjection).Assembly, new[] { "Review.", "Gateway.", "Hub." }),
+                (typeof(Review.Application.DependencyInjection).Assembly, new[] { "Registry.", "Gateway.", "Hub." }),
+                (typeof(Gateway.API.GatewayOptions).Assembly, new[] { "Registry.", "Review.", "Hub." }),
+                (typeof(Hub.Application.DependencyInjection).Assembly, new[] { "Registry.", "Review.", "Gateway." })
             ],
             rule => ShouldNotDependOn(rule.Item1, rule.Item2));
+
+    // insight - the Hub only reads: it neither calls another service nor publishes, so it can never decide anything
+    [Fact]
+    public void Hub_neither_calls_gRPC_nor_holds_business_rules() =>
+        ShouldNotDependOn(typeof(Hub.Application.DependencyInjection).Assembly,
+            ["AgentGate.Grpc.Contracts", "Grpc", "ProtoBuf", "Blocks.Domain", "Stateless"]);
+
+    [Fact]
+    public void Hub_rows_reference_nothing() =>
+        ShouldNotDependOn(typeof(Hub.Domain.ServerView).Assembly,
+            ["Microsoft.EntityFrameworkCore", "MassTransit", "Blocks.", "AgentGate.", "Hub.Persistence", "Hub.Application", "Hub.API"]);
 
     [Fact]
     public void Integration_events_are_plain_contracts() =>
         ShouldNotDependOn(typeof(ServerApproved).Assembly,
-            ["Blocks.", "Registry.", "Review.", "Gateway.", "MassTransit", "Microsoft.EntityFrameworkCore"]);
+            ["Blocks.", "Registry.", "Review.", "Gateway.", "Hub.", "MassTransit", "Microsoft.EntityFrameworkCore"]);
 
     [Fact]
     public void The_gRPC_contract_references_no_service() =>

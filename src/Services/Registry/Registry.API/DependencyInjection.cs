@@ -10,6 +10,7 @@ public static class Policies
     // policy names equal the realm role they require (Realms/agentgate-realm.json)
     public const string RegistryAdmin = Roles.RegistryAdmin;
     public const string SnapshotReader = Roles.SnapshotReader;
+    public const string GatewaySync = Roles.GatewaySync;
 }
 
 public static class DependencyInjection
@@ -34,7 +35,8 @@ public static class DependencyInjection
             });
         builder.Services.AddAuthorizationBuilder()
             .AddPolicy(Policies.RegistryAdmin, policy => policy.RequireRole(Roles.RegistryAdmin))
-            .AddPolicy(Policies.SnapshotReader, policy => policy.RequireRole(Roles.SnapshotReader));
+            .AddPolicy(Policies.SnapshotReader, policy => policy.RequireRole(Roles.SnapshotReader))
+            .AddPolicy(Policies.GatewaySync, policy => policy.RequireRole(Roles.GatewaySync));
 
         builder.Services.AddCodeFirstGrpc();
 

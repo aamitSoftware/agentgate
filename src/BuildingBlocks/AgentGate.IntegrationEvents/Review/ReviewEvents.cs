@@ -17,3 +17,8 @@ public sealed record GrantActivated(Guid GrantId, Guid AgentId, string AgentClie
 public sealed record GrantSuspended(Guid GrantId, string Reason, DateTime OccurredOn);
 
 public sealed record GrantRevoked(Guid GrantId, string Reason, DateTime OccurredOn);
+
+/// <summary>A manifest is waiting for reviewers; the scan's verdict is known before anyone decides.</summary>
+/// <param name="PreviousHash">The pinned manifest it would replace; null for a new server.</param>
+public sealed record ManifestReviewOpened(Guid ReviewId, Guid ServerId, string ServerName, string ManifestHash, string? PreviousHash,
+    string RiskLevel, int FindingCount, DateTime OccurredOn);

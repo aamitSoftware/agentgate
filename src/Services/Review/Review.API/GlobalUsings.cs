@@ -5,6 +5,7 @@ global using Review.Domain.Grants;
 global using Review.Domain.ManifestReviews;
 // Own layers
 global using Review.Application.Features.Grants.ApproveGrant;
+global using Review.Application.Features.Grants.GetGatewayGrants;
 global using Review.Application.Features.Grants.GetGrants;
 global using Review.Application.Features.Grants.RejectGrant;
 global using Review.Application.Features.Grants.RequestGrant;

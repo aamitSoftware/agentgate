@@ -6,7 +6,8 @@ Governance control plane for AI agents' MCP tool access. Design and milestones: 
 - `src/BuildingBlocks/Blocks.*` — shared primitives (Domain, Core, Exceptions, EntityFrameworkCore, Mediator, AspNetCore, Messaging)
 - `src/BuildingBlocks/AgentGate.*` — cross-service contracts: `IntegrationEvents`, `Grpc.Contracts` (the one gRPC call), `Abstractions` (roles, system actors)
 - `src/Services/{Registry,Review,Gateway,Hub}/{X}.API|Application|Domain|Persistence` (added per milestone)
-- `src/AgentGate.AppHost`, `src/AgentGate.ServiceDefaults` — Aspire
+- `src/AgentGate.AppHost`, `src/AgentGate.ServiceDefaults` — Aspire (every service's endpoints are declared there, not in launch profiles)
+- `web/` — React console (Vite, TanStack Query/Router, Tailwind); talks to services through the dev server's `/api/{service}` proxy
 - `tests/` — architecture tests, unit tests, Testcontainers integration tests
 
 ## Rules
@@ -24,5 +25,6 @@ Governance control plane for AI agents' MCP tool access. Design and milestones: 
 dotnet build
 dotnet test
 dotnet format --verify-no-changes
-dotnet run --project src/AgentGate.AppHost   # needs Docker
+dotnet run --project src/AgentGate.AppHost   # needs Docker; console on http://localhost:5173
+cd web && npm test && npm run build && npm run screenshots
 ```

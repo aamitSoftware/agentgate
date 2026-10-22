@@ -147,21 +147,24 @@ correlation across HTTP, RabbitMQ and gRPC.
 
 ## Phase 5 - register with Aspire
 
-Add the API project to `AgentGate.slnx` and reference it from `AgentGate.AppHost`. Aspire assigns ports and
-service discovery resolves `https+http://{service}`, so there is no port convention. Target shape in
-`AppHost.cs` (the existing resources need to be captured in variables first):
+Add the API project to `AgentGate.slnx` and reference it from `AgentGate.AppHost`. Declare its endpoints in
+`AppHost.cs` instead of relying on a launch profile: launch profiles are machine-local and not in the repo, and
+without an endpoint a `WithReference` to the service passes nothing (check with
+`dotnet run --project src/AgentGate.AppHost -- --publisher manifest --output-path manifest.json`).
 
 ```csharp
-var registryDb = postgres.AddDatabase("registrydb");
+var hubDb = postgres.AddDatabase("hubdb");
 
-builder.AddProject<Projects.Registry_API>("registry")
-    .WithReference(registryDb).WaitFor(registryDb)
+var hub = builder.AddProject<Projects.Hub_API>("hub", options => options.ExcludeLaunchProfile = true)
+    .WithHttpEndpoint()
+    .WithReference(hubDb).WaitFor(hubDb)
     .WithReference(rabbitmq).WaitFor(rabbitmq)
-    .WithReference(keycloak);
+    .WithReference(keycloak).WaitFor(keycloak);
 ```
 
-The connection names are contracts: `rabbitmq` is read by `Blocks.Messaging`, `{service}db` by the
-Persistence DI.
+Aspire assigns ports and service discovery resolves `https+http://{service}`. The connection names are
+contracts: `rabbitmq` is read by `Blocks.Messaging`, `{service}db` by the Persistence DI. A service the
+console reads also goes into the console's `WithReference` list and the Vite proxy (`web/vite.config.ts`).
 
 ## Verify
 
