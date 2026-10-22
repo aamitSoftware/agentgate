@@ -11,8 +11,11 @@ var rabbitmq = builder.AddRabbitMQ("rabbitmq")
 
 // Fixed port: the token issuer URL must be stable for the browser (React OIDC) and for agents. Plain HTTP: Aspire
 // would otherwise switch Keycloak to HTTPS whenever a .NET dev certificate exists, and the issuer would depend on the machine.
+// 8080 by default; where it is taken or reserved (Hyper-V and WSL reserve port ranges on Windows), choose another:
+// dotnet run --project src/AgentGate.AppHost -- --KeycloakPort=18080
+var keycloakPort = int.TryParse(builder.Configuration["KeycloakPort"], out var port) ? port : 8080;
 #pragma warning disable ASPIRECERTIFICATES001 // evaluation API; the only switch for this in Aspire 13
-var keycloak = builder.AddKeycloak("keycloak", port: 8080)
+var keycloak = builder.AddKeycloak("keycloak", port: keycloakPort)
     .WithoutHttpsCertificate()
     .WithRealmImport("./Realms");
 #pragma warning restore ASPIRECERTIFICATES001

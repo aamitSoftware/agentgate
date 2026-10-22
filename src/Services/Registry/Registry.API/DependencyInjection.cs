@@ -31,7 +31,7 @@ public static class DependencyInjection
                 options.MapInboundClaims = false;                          // keep 'sub' and 'roles' as issued
                 options.TokenValidationParameters.RoleClaimType = "roles"; // flat claim from a realm mapper
                 if (builder.Environment.IsDevelopment())
-                    options.RequireHttpsMetadata = false;                  // Keycloak runs on http://localhost:8080
+                    options.RequireHttpsMetadata = false;                  // Keycloak runs on plain HTTP in dev (AppHost)
             });
         builder.Services.AddAuthorizationBuilder()
             .AddPolicy(Policies.RegistryAdmin, policy => policy.RequireRole(Roles.RegistryAdmin))

@@ -3,6 +3,7 @@ import { ChevronRight, CircleCheck, ClipboardCheck, OctagonAlert, PauseCircle, S
 import type { ReactNode } from "react";
 import { useAgents, useGrantQueue, useGrants, useRecentActivity, useReviewQueue, useServers } from "@/api/queries";
 import { Timeline } from "@/components/activity";
+import { InlineArrow } from "@/components/arrow";
 import { PageBody, PageHeader } from "@/components/page-header";
 import { Message, QueryState, SkeletonRows } from "@/components/query-state";
 import { Seals } from "@/components/seals";
@@ -83,7 +84,9 @@ function Attention() {
       tone: "info",
       title: (
         <>
-          Grant request: <span className="font-mono">{grant.agentClientId}</span> → <span className="font-mono">{grant.serverName}</span>
+          Grant request: <span className="font-mono">{grant.agentClientId}</span>
+          <InlineArrow />
+          <span className="font-mono">{grant.serverName}</span>
         </>
       ),
       detail: (
