@@ -260,6 +260,20 @@ Each milestone is demoable. Tests and CI start at M0. Estimate: about 8 weeks pa
 - **AppHost.** Every service's endpoints are declared in `AppHost.cs` instead of machine-local launch profiles. Without them, service references resolved to nothing on a fresh clone.
 - **Not done:** a production build of the console behind a single origin (YARP or static hosting). The dev server's proxy is the only front door for now.
 
+**M5 as built** (differences from the scope above):
+- **Anomaly detector.** A sliding window per agent at the gateway, by default 5 denied calls in 60 s.
+  - Refusals because a server is quarantined don't count: that isn't the agent's doing.
+  - Crossing the threshold blocks the agent locally at once, so even its granted tools are refused. The gateway then publishes `AnomalyDetected` from an unbounded queue, retried until the broker accepts it (an anomaly must not be dropped like an observation).
+  - Review suspends every active grant of the agent as `system:anomaly-detector`.
+  - A reviewer's resume republishes `GrantActivated`, which lifts the gateway's block only if it is newer than the block.
+- **ClaudeRiskScanner** (ADR 0006) runs the heuristic scan plus `claude-opus-5-5` through the official `Anthropic` SDK.
+  - Settings: effort `high`, a JSON-schema output, and server-side fallbacks.
+  - The manifest is escaped and delimited as untrusted data.
+  - Model findings must name a real tool and quote text that is really in it, and they can only add to the heuristic verdict.
+  - It is off unless an API key is set as an Aspire secret parameter.
+- **Demo.** The DemoAgent runs setup → calls → the prompt-injected agent (blocked, suspended, resumed by a reviewer) → rug pull. The README has a 3-minute demo script.
+- **GIF.** Recorded by Playwright against the console's fixture data (`web/e2e/walkthrough.spec.ts`), not from a live system.
+
 **Out of scope for v1** (listed as v2 in the README):
 - Response inspection: instructions injected into results, and changes in tool behaviour.
 - MCP resources, prompts and subscriptions.

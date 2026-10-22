@@ -45,6 +45,7 @@ public sealed class GatewayEndToEndTests : IAsyncLifetime
         {
             web.UseSetting("ConnectionStrings:rabbitmq", "amqp://localhost"); // never dialled: the harness swaps in an in-memory bus
             web.UseSetting("GatewayOptions:Bootstrap", "false");              // state comes from the events these tests publish
+            web.UseSetting("GatewayOptions:AnomalyThreshold", "3");
             web.ConfigureTestServices(services =>
             {
                 services.AddMassTransitTestHarness();
@@ -86,6 +87,40 @@ public sealed class GatewayEndToEndTests : IAsyncLifetime
         Assert.Equal(("demo-agent", "crm", "Denied"), (observed.Context.Message.AgentClientId, observed.Context.Message.ServerName,
             observed.Context.Message.Decision));
         Assert.Contains("not granted", observed.Context.Message.Reason);
+    }
+
+    [Fact]
+    public async Task An_agent_probing_for_ungranted_tools_is_blocked_and_reported()
+    {
+        foreach (var _ in Enumerable.Range(0, 3))
+            using (await PostAsync("demo-agent", "tools/call", "export_all_customers")) { }
+
+        // the granted tool is now denied too: the agent is blocked until a reviewer resumes its grant
+        using var blocked = await PostAsync("demo-agent", "tools/call", "lookup_customer");
+        Assert.Equal(HttpStatusCode.Forbidden, blocked.StatusCode);
+        Assert.Contains("blocked after a spike", await blocked.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+
+        var harness = _gateway.Services.GetTestHarness();
+        var anomaly = await harness.Published.SelectAsync<AnomalyDetected>(TestContext.Current.CancellationToken).FirstOrDefault();
+        Assert.NotNull(anomaly);
+        Assert.Equal(("demo-agent", 3), (anomaly.Context.Message.AgentClientId, anomaly.Context.Message.DeniedCount));
+
+        // a reviewer resumes the grant (after the anomaly): the block lifts
+        await PublishAsync(new GrantActivated(_grantId, Guid.CreateVersion7(), "demo-agent", _crmServerId, "crm", ["lookup_customer"],
+            ExpiresAt: null, DateTime.UtcNow.AddSeconds(1)));
+        using var resumed = await PostAsync("demo-agent", "tools/call", "lookup_customer");
+        Assert.NotEqual(HttpStatusCode.Forbidden, resumed.StatusCode);
+    }
+
+    [Fact]
+    public async Task Calls_refused_because_the_server_is_quarantined_do_not_count_as_an_anomaly()
+    {
+        await PublishAsync(new ServerQuarantined(_crmServerId, "crm", "sha256:pinned", "sha256:observed", "Manifest drift", DateTime.UtcNow));
+
+        foreach (var _ in Enumerable.Range(0, 5))
+            using (await PostAsync("demo-agent", "tools/call", "lookup_customer")) { }
+
+        Assert.False(await _gateway.Services.GetTestHarness().Published.Any<AnomalyDetected>(TestContext.Current.CancellationToken));
     }
 
     [Fact]

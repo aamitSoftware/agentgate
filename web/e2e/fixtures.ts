@@ -35,6 +35,17 @@ const call = (id: string, seconds: number, toolName: string, decision: "Allowed"
   summary: null, actorId: null, serverId: null, agentId: null,
 });
 
+const anomaly = {
+  ...event("e10", 2.5, "AnomalyDetected",
+    "Anomaly: support-bot-2 had 6 calls denied in 60 s (crm/export_all_customers). Blocked at the gateway; its grants are being suspended.", "critical"),
+  agentId: "0199f3a1-2222-7d8e-9f01-23456789abcd", actorId: "system:anomaly-detector",
+};
+const suspension = {
+  ...event("e9", 2.4, "GrantSuspended",
+    "Grant for support-bot-2 on tickets suspended: Auto-suspended: 6 denied calls in 60 s (crm/export_all_customers). Possible prompt injection.", "warning"),
+  agentId: "0199f3a1-2222-7d8e-9f01-23456789abcd",
+};
+
 const timeline = [
   event("e8", 1, "ManifestReviewOpened", `Review opened for manifest ${drifted.slice(0, 12)}: risk High, 5 finding(s).`, "critical"),
   event("e7", 1.1, "ManifestSubmitted", `Manifest ${drifted.slice(0, 12)} submitted for re-review (pinned ${pinned.slice(0, 12)}): Manifest drifted.`),
@@ -125,7 +136,9 @@ export async function signInWithFixtures(page: Page) {
     route.fulfill(json({ summary: agents[0], grants: [grant], timeline: timeline.filter((item) => item.agentId), recentCalls: calls.filter((item) => item.agentClientId === "demo-agent") })),
   );
   await page.route("**/api/hub/access", (route) => route.fulfill(json([grant])));
-  await page.route("**/api/hub/activity?*", (route) => route.fulfill(json([...timeline, ...calls].sort((a, b) => b.occurredOn.localeCompare(a.occurredOn)))));
+  await page.route("**/api/hub/activity?*", (route) =>
+    route.fulfill(json([...timeline, anomaly, suspension, ...calls].sort((a, b) => b.occurredOn.localeCompare(a.occurredOn)))),
+  );
   await page.route("**/api/hub/activity/stream", (route) =>
     route.fulfill({
       status: 200,

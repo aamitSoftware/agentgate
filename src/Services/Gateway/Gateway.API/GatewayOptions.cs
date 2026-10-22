@@ -11,6 +11,13 @@ public sealed class GatewayOptions
     /// <summary>Rebuild servers and grants from Registry and Review at startup (off only in tests that feed events directly).</summary>
     public bool Bootstrap { get; init; } = true;
 
+    /// <summary>Denied calls within <see cref="AnomalyWindowSeconds"/> that block an agent and suspend its grants.</summary>
+    [Range(2, 1000)]
+    public int AnomalyThreshold { get; init; } = 5;
+
+    [Range(5, 3600)]
+    public int AnomalyWindowSeconds { get; init; } = 60;
+
     [Required]
     public string RegistryAddress { get; init; } = default!;
 

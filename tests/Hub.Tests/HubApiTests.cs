@@ -137,6 +137,19 @@ public sealed class HubApiTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task An_anomaly_is_a_critical_entry_on_the_agents_timeline()
+    {
+        await DeliverAsync(new AgentRegistered(_agentId, "Support bot", "demo-agent", "support-team", "Answers tickets", DateTime.UtcNow.AddMinutes(-1)));
+
+        await DeliverAsync(new AnomalyDetected(NewId.NextGuid(), "demo-agent", "DeniedCallSpike", 5, 60, ["crm/export_all_customers"], DateTime.UtcNow));
+
+        var agent = await GetAsync<JsonElement>($"/agents/{_agentId}");
+        var entry = agent.GetProperty("timeline").EnumerateArray().First();
+        Assert.Equal(("AnomalyDetected", "critical"), (entry.GetProperty("eventKind").GetString(), entry.GetProperty("severity").GetString()));
+        Assert.Contains("5 calls denied", entry.GetProperty("summary").GetString());
+    }
+
+    [Fact]
     public async Task Reads_need_a_governance_role()
     {
         using var anonymous = _hub!.CreateClient();

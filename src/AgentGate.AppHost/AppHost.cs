@@ -36,6 +36,11 @@ var review = builder.AddProject<Projects.Review_API>("review", options => option
     .WithReference(registry) // GetServerSnapshot, resolved as http://_grpc.registry
     .WithEnvironment("ServiceIdentityOptions__ClientSecret", "dev-only-O1XvrDrtWdbpmlYYsQUwbZzA");
 
+// Optional: with a key, Review adds Claude's reading of each manifest to the heuristic scan (ADR 0006).
+// Set it once with: dotnet user-secrets set Parameters:anthropic-api-key <key> --project src/AgentGate.AppHost
+if (builder.Configuration["Parameters:anthropic-api-key"] is { Length: > 0 })
+    review.WithEnvironment("ClaudeRiskScannerOptions__ApiKey", builder.AddParameter("anthropic-api-key", secret: true));
+
 // Reads the servers and grants it enforces from Registry and Review at startup, then follows their events.
 var gateway = builder.AddProject<Projects.Gateway_API>("gateway", options => options.ExcludeLaunchProfile = true)
     .WithHttpEndpoint()
