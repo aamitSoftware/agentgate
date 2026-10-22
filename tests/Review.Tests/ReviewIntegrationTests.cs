@@ -115,6 +115,9 @@ public sealed class ReviewIntegrationTests(PostgresFixture postgres) : IClassFix
         var review = Assert.Single(await ReviewsAsync());
         Assert.Equal((ReviewStatus.Open, RiskLevel.Medium, "crm"), (review.Status, review.RiskLevel, review.ServerName));
         Assert.Equal("system:review-intake", review.CreatedBy);
+        // the consumer outbox delivers after commit as a serialized send to the event's publish address
+        Assert.True(await Harness.Sent.Any(message =>
+            message.Context.DestinationAddress?.AbsolutePath.EndsWith(":" + nameof(Contracts.ManifestReviewOpened)) == true, Ct));
     }
 
     [Fact]

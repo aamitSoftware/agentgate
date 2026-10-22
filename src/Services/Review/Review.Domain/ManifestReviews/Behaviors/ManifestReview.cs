@@ -22,6 +22,7 @@ public partial class ManifestReview
             CreatedOn = action.OccurredOn
         };
         review._auditEntries.Add(ReviewAuditEntry.Create(null, ReviewStatus.Open, action));
+        review.AddDomainEvent(new ManifestReviewOpened(review, action));
         return review;
     }
 

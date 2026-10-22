@@ -97,10 +97,24 @@ public class ManifestReviewTests
         Assert.Equal(ReviewStatus.Superseded, review.Status);
     }
 
-    private static ManifestReview Open(string toolsJson, string? previousToolsJson = null) =>
-        ManifestReview.Open(Guid.CreateVersion7(), "crm", Hash, toolsJson, previousToolsJson is null ? null : NewerHash, previousToolsJson,
-            "test", HeuristicRiskScanner.Scan(new("crm", toolsJson, previousToolsJson)),
+    [Fact]
+    public void Opening_a_review_announces_the_scan_verdict()
+    {
+        var review = ManifestReview.Open(Guid.CreateVersion7(), "crm", Hash, TestData.PoisonedCrmTools, NewerHash, TestData.CrmTools, "drift",
+            HeuristicRiskScanner.Scan(new("crm", TestData.PoisonedCrmTools, TestData.CrmTools)),
             new TestAction<ReviewActionType>(ReviewActionType.Open, "system:review"));
+
+        Assert.Equal(RiskLevel.High, Assert.IsType<ManifestReviewOpened>(Assert.Single(review.DomainEvents)).Review.RiskLevel);
+    }
+
+    private static ManifestReview Open(string toolsJson, string? previousToolsJson = null)
+    {
+        var review = ManifestReview.Open(Guid.CreateVersion7(), "crm", Hash, toolsJson, previousToolsJson is null ? null : NewerHash,
+            previousToolsJson, "test", HeuristicRiskScanner.Scan(new("crm", toolsJson, previousToolsJson)),
+            new TestAction<ReviewActionType>(ReviewActionType.Open, "system:review"));
+        review.ClearDomainEvents();
+        return review;
+    }
 
     private static TestAction<ReviewActionType> Approve(string actorId, string? comment = null) => new(ReviewActionType.Approve, actorId, comment);
 }

@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using Gateway.API.Features.Catalog;
 using Gateway.API.Features.Grants;
+using Gateway.API.Features.Observation;
 using Yarp.ReverseProxy.Forwarder;
 
 namespace Gateway.API.Features.McpProxy;
@@ -25,7 +26,8 @@ public static class McpProxyEndpoint
     }
 
     private static async Task HandleAsync(string serverId, HttpContext httpContext, ServerCatalog catalog,
-        GrantTable grants, IHttpForwarder forwarder, HttpMessageInvoker upstreamClient, ILoggerFactory loggerFactory)
+        GrantTable grants, ObservationQueue observations, IHttpForwarder forwarder, HttpMessageInvoker upstreamClient,
+        ILoggerFactory loggerFactory)
     {
         var logger = loggerFactory.CreateLogger(typeof(McpProxyEndpoint));
 
@@ -51,6 +53,7 @@ public static class McpProxyEndpoint
         // fail closed: a server the gateway hasn't seen approved does not exist for agents
         if (!catalog.TryGet(serverId, out var server))
         {
+            observations.Observe(agentId, serverId, request.Method, request.Name, $"Unknown MCP server '{serverId}'.");
             await WriteErrorAsync(httpContext, new(StatusCodes.Status404NotFound, PolicyDenied, $"Unknown MCP server '{serverId}'.", request.Id));
             return;
         }
@@ -68,6 +71,7 @@ public static class McpProxyEndpoint
 
         Activity.Current?.SetTag("agentgate.decision", denialReason is null ? "allow" : "deny")
             .SetTag("agentgate.manifest_hash", server.ManifestHash);
+        observations.Observe(agentId, serverId, request.Method, request.Name, denialReason);
         if (denialReason is not null)
         {
             logger.LogWarning("Denied {Method} {Name} on {ServerId} for agent {AgentId}: {Reason}",

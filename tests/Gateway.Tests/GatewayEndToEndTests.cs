@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using AgentGate.IntegrationEvents.Gateway;
 using AgentGate.IntegrationEvents.Registry;
 using AgentGate.IntegrationEvents.Review;
 using DemoMcpServer;
@@ -69,6 +70,21 @@ public sealed class GatewayEndToEndTests : IAsyncLifetime
         using var denied = await PostAsync("demo-agent", "tools/call", "lookup_customer");
         Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
         Assert.Contains("not granted", await denied.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task Every_decision_is_published_as_an_observation()
+    {
+        using (await PostAsync("demo-agent", "tools/call", "export_all_customers")) { }
+
+        var harness = _gateway.Services.GetTestHarness();
+        var observed = await harness.Published.SelectAsync<ToolCallObserved>(
+                message => message.Context.Message.ToolName == "export_all_customers", TestContext.Current.CancellationToken)
+            .FirstOrDefault();
+        Assert.NotNull(observed);
+        Assert.Equal(("demo-agent", "crm", "Denied"), (observed.Context.Message.AgentClientId, observed.Context.Message.ServerName,
+            observed.Context.Message.Decision));
+        Assert.Contains("not granted", observed.Context.Message.Reason);
     }
 
     [Fact]
